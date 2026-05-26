@@ -34,15 +34,26 @@ h6,
   color-scheme: dark light;
 
   /* Dark Mode Default Theme Variables */
-  --bg-main: #1F2023;
-  --bg-sidebar: #18181A;
-  --bg-control: #1F2023;
+  --bg-main: #181818;
+  --bg-sidebar: #141414;
+  --bg-control: #181818;
   --text-main: #f4f4f5;
   --text-muted: #71717a;
-  --border-color: rgba(39, 39, 42, 0.4);
-  --bg-hover: #252528;
-  --bg-input: #151517;
+  --border-color: transparent;
+  --bg-hover: #1C1C1F;
+  --bg-input: #27272A;
   --text-input-active: #ffffff;
+
+  /* Premium Search Modal Variables - Dark */
+  --bg-modal: #141414;
+  --bg-modal-header: #161616;
+  --bg-modal-preview: #111111;
+  --bg-modal-footer: #131313;
+  --border-modal: #1f1f22;
+  --text-modal-title: #e4e4e7;
+  --text-modal-muted: #a1a1aa;
+  --text-modal-placeholder: #71717a;
+  --bg-modal-item-hover: rgba(39, 39, 42, 0.45);
 }
 
 :root.light {
@@ -53,10 +64,21 @@ h6,
   --bg-control: #fdf6e3;
   --text-main: #586e75;
   --text-muted: #839496;
-  --border-color: rgba(38, 139, 210, 0.25);
+  --border-color: transparent;
   --bg-hover: #eee8d5;
   --bg-input: #fdf6e3;
   --text-input-active: #073642;
+
+  /* Premium Search Modal Variables - Light */
+  --bg-modal: #f5f0e1;
+  --bg-modal-header: #fdf6e3;
+  --bg-modal-preview: #fdf6e3;
+  --bg-modal-footer: #ebe3cb;
+  --border-modal: #e2e1d4;
+  --text-modal-title: #073642;
+  --text-modal-muted: #586e75;
+  --text-modal-placeholder: #93a1a1;
+  --bg-modal-item-hover: rgba(238, 232, 213, 0.7);
 }
 
 body {

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './components/sidebar/Sidebar';
 import ChatWindow from './components/chat/ChatWindow';
+import SearchModal from './components/chat/SearchModal';
 import { useThemeStore } from './stores/useThemeStore';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { theme } = useThemeStore();
 
   // Sync theme with document root class list
@@ -17,18 +19,40 @@ function App() {
     }
   }, [theme]);
 
+  // Global keyboard shortcut for search modal (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   return (
-    <div className="flex h-screen bg-[var(--bg-main)] text-[var(--text-main)] overflow-hidden select-none font-sans transition-colors duration-150">
+    <div className="flex h-screen bg-[var(--bg-sidebar)] text-[var(--text-main)] overflow-hidden select-none font-sans transition-colors duration-150 relative">
       {/* Sidebar - always render to support sliding transitions */}
-      <Sidebar isOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        setSidebarOpen={setSidebarOpen} 
+        onSearchClick={() => setIsSearchOpen(true)}
+      />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-main)] transition-colors duration-150">
+      <div className={`flex-1 flex flex-col min-w-0 bg-[var(--bg-main)] my-2 mr-2 rounded-2xl overflow-hidden transition-all duration-150 ${!sidebarOpen ? 'ml-2' : 'ml-0'}`}>
         {/* Chat Feed & Top Area */}
         <div className="flex-1 overflow-hidden flex flex-col bg-[var(--bg-main)] transition-colors duration-150">
           <ChatWindow sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         </div>
       </div>
+
+      {/* Premium Grok-Style Search Modal Overlay */}
+      <SearchModal 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)}
+      />
     </div>
   );
 }

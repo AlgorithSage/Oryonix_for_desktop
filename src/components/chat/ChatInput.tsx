@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent, useRef, useCallback } from 'react';
+import { useState, KeyboardEvent, useRef, useCallback, useEffect } from 'react';
 import { Mic } from 'lucide-react';
 import { useChatStore } from '../../stores/useChatStore';
 
@@ -9,6 +9,16 @@ export default function ChatInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Lock to prevent shrink-back from triggering on the same render cycle as a grow
   const grownLockRef = useRef(false);
+
+  // Auto-focus the input box when AI finishes responding (or on page load)
+  useEffect(() => {
+    if (!isThinking) {
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isThinking]);
 
   const resizeTextarea = useCallback(() => {
     const textarea = textareaRef.current;
@@ -67,8 +77,8 @@ export default function ChatInput() {
   /* ── Pill shape: single-row layout ── */
   if (!isGrown) {
     return (
-      <div className="w-full select-none font-sans px-4 py-2 shrink-0">
-        <div className="max-w-2xl mx-auto bg-[var(--bg-input)] shadow-md flex flex-row items-center rounded-[28px] py-2.5 pl-5 pr-2 transition-all duration-300 ease-in-out">
+      <div className="w-full select-none font-sans px-4 pt-0 pb-2 shrink-0">
+        <div className="max-w-4xl mx-auto bg-[var(--bg-input)] shadow-md flex flex-row items-center rounded-[28px] py-2.5 pl-5 pr-2 transition-all duration-300 ease-in-out">
           <textarea
             ref={textareaRef}
             value={input}
@@ -91,7 +101,7 @@ export default function ChatInput() {
               className={`w-9 h-9 !p-0 flex items-center justify-center cursor-pointer transition-all active:scale-95 !bg-transparent !border-none !shadow-none
                 ${(!input.trim() || isThinking)
                   ? 'text-zinc-700 opacity-40 cursor-not-allowed'
-                  : 'text-[#00c896] hover:text-[#00b084]'}`}
+                  : 'text-[#F56C13] hover:text-[#e05e0d]'}`}
               title="Send Message"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -108,8 +118,8 @@ export default function ChatInput() {
 
   /* ── Box shape: multi-row layout ── */
   return (
-    <div className="w-full select-none font-sans px-4 py-2 shrink-0">
-      <div className="max-w-2xl mx-auto bg-[var(--bg-input)] shadow-md flex flex-col rounded-2xl p-3 gap-2 transition-all duration-300 ease-in-out">
+    <div className="w-full select-none font-sans px-4 pt-0 pb-2 shrink-0">
+      <div className="max-w-4xl mx-auto bg-[var(--bg-input)] shadow-md flex flex-col rounded-2xl p-3 gap-2 transition-all duration-300 ease-in-out">
         {/* Textarea takes full width — no wrapper row, no gap */}
         <textarea
           ref={textareaRef}
@@ -135,7 +145,7 @@ export default function ChatInput() {
               className={`w-9 h-9 !p-0 flex items-center justify-center cursor-pointer transition-all active:scale-95 !bg-transparent !border-none !shadow-none
                 ${(!input.trim() || isThinking)
                   ? 'text-zinc-700 opacity-40 cursor-not-allowed'
-                  : 'text-[#00c896] hover:text-[#00b084]'}`}
+                  : 'text-[#F56C13] hover:text-[#e05e0d]'}`}
               title="Send Message"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
