@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { useChatStore } from '../../stores/useChatStore';
 import { useThemeStore } from '../../stores/useThemeStore';
+import { useAgentBridge } from '../../stores/useAgentBridge';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
 import { PanelLeft, Sun, Moon } from 'lucide-react';
@@ -14,6 +15,7 @@ interface ChatWindowProps {
 export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowProps) {
   const { sessions, currentSessionId, isThinking } = useChatStore();
   const { theme, toggleTheme } = useThemeStore();
+  const { status, currentStep } = useAgentBridge();
   const scrollRef = useRef<HTMLDivElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
 
@@ -83,12 +85,27 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
         </div>
 
         {/* Top Right Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Backend connection status dot */}
+          <div className="flex items-center gap-1.5" title={`Backend: ${status}`}>
+            <span className={`w-2 h-2 rounded-full shrink-0 ${
+              status === 'connected'    ? 'bg-[#00c896]' :
+              status === 'connecting'   ? 'bg-yellow-400 animate-pulse' :
+              status === 'error'        ? 'bg-red-500' :
+                                          'bg-zinc-600'
+            }`} />
+            <span className="text-[10px] font-mono text-zinc-500 hidden sm:block">
+              {status === 'connected'  ? 'connected' :
+               status === 'connecting' ? 'connecting…' :
+               status === 'error'      ? 'offline' : 'disconnected'}
+            </span>
+          </div>
+
           {/* Theme Toggle Icon */}
-          <button 
+          <button
             onClick={(e) => toggleTheme(e)}
-            className="text-zinc-500 hover:text-[var(--text-main)] transition-colors cursor-pointer p-1.5 rounded hover:bg-[var(--bg-hover)]"
-            title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            className="text-zinc-500 hover:text-(--text-main) transition-colors cursor-pointer p-1.5 rounded hover:bg-(--bg-hover)"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
@@ -121,11 +138,13 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
                 ))}
               </div>
 
-              {/* Thinking compiling indicator */}
+              {/* Thinking / live step indicator */}
               {isThinking && (
                 <div className="flex items-center gap-2 text-[#00c896] font-mono text-[10px] px-6 py-2 select-none animate-fade-in">
                   <span className="animate-pulse">❯</span>
-                  <span className="animate-pulse tracking-widest font-bold">ORYONIX IS RUNNING MODEL INFERENCE...</span>
+                  <span className="animate-pulse tracking-widest font-bold truncate max-w-[600px]">
+                    {currentStep ?? 'ORYONIX IS RUNNING MODEL INFERENCE...'}
+                  </span>
                 </div>
               )}
             </div>

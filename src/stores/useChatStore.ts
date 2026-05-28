@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Module-level timer — auto-resets isThinking if backend never responds
+let _thinkingTimer: ReturnType<typeof setTimeout> | null = null;
+const THINKING_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -20,7 +24,12 @@ interface ChatState {
   createSession: () => string;
   deleteSession: (id: string) => void;
   selectSession: (id: string) => void;
-  sendMessage: (content: string) => void;
+  /** Add user message and set isThinking. Returns the active session id. */
+  sendMessage: (content: string) => string;
+  /** Called by useAgentBridge when agent state changes. */
+  setIsThinking: (value: boolean) => void;
+  /** Called by useAgentBridge when Python sends task_done or error. */
+  addAssistantMessage: (sessionId: string, content: string) => void;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -32,32 +41,34 @@ export const useChatStore = create<ChatState>()(
 
       createSession: () => {
         const state = get();
-        
-        // 1. If the current active session is already empty, just keep using it
+
+        // Re-use current session if it's already empty
         const currentSession = state.sessions.find((s) => s.id === state.currentSessionId);
         if (currentSession && currentSession.messages.length === 0) {
           return currentSession.id;
         }
 
-        // 2. If there's any other empty session in the list, select it instead of creating a new one
-        const existingEmptySession = state.sessions.find((s) => s.messages.length === 0);
-        if (existingEmptySession) {
-          set({ currentSessionId: existingEmptySession.id });
-          return existingEmptySession.id;
+        // Re-use any other empty session instead of creating a duplicate
+        const existingEmpty = state.sessions.find((s) => s.messages.length === 0);
+        if (existingEmpty) {
+          set({ currentSessionId: existingEmpty.id });
+          return existingEmpty.id;
         }
 
-        // 3. Otherwise, create a new session
-        const id = typeof crypto !== 'undefined' && crypto.randomUUID 
-          ? crypto.randomUUID() 
-          : Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+        // Create a new session
+        const id =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+
         const newSession: ChatSession = {
           id,
           title: 'New Chat',
           messages: [],
           createdAt: Date.now(),
         };
-        set((state) => ({
-          sessions: [newSession, ...state.sessions],
+        set((s) => ({
+          sessions: [newSession, ...s.sessions],
           currentSessionId: id,
         }));
         return id;
@@ -70,10 +81,7 @@ export const useChatStore = create<ChatState>()(
           if (state.currentSessionId === id) {
             nextActiveId = filtered.length > 0 ? filtered[0].id : null;
           }
-          return {
-            sessions: filtered,
-            currentSessionId: nextActiveId,
-          };
+          return { sessions: filtered, currentSessionId: nextActiveId };
         });
       },
 
@@ -85,58 +93,68 @@ export const useChatStore = create<ChatState>()(
         const state = get();
         let activeId = state.currentSessionId;
 
-        // If there's no active session, create one first
         if (!activeId) {
-          activeId = state.createSession();
+          activeId = get().createSession();
         }
 
-        // Add user message to active session and set thinking
         set((s) => ({
           isThinking: true,
           sessions: s.sessions.map((sess) => {
-            if (sess.id === activeId) {
-              const updatedMessages = [...sess.messages, { role: 'user' as const, content }];
-              // If title was still 'New Chat', use the first 30 chars of first message as title
-              const title = sess.title === 'New Chat' 
-                ? (content.length > 30 ? content.slice(0, 30) + '...' : content) 
+            if (sess.id !== activeId) return sess;
+            const updatedMessages: Message[] = [
+              ...sess.messages,
+              { role: 'user' as const, content },
+            ];
+            const title =
+              sess.title === 'New Chat'
+                ? content.length > 30
+                  ? content.slice(0, 30) + '...'
+                  : content
                 : sess.title;
-              return {
-                ...sess,
-                title,
-                messages: updatedMessages,
-              };
-            }
-            return sess;
+            return { ...sess, title, messages: updatedMessages };
           }),
         }));
 
-        // Simulate agent response
-        setTimeout(() => {
-          set((s) => {
-            let reply = "I am a local AI assistant. I can see your screen, run files, and execute terminal commands.";
-            const contentLower = content.toLowerCase();
-            if (contentLower.includes('hello') || contentLower.includes('hi')) {
-              reply = "Hello! I am Oryonix, your desktop AI agent. How can I assist you today?";
-            } else if (contentLower.includes('chrome') || contentLower.includes('browser')) {
-              reply = "Understood. I will prepare a plan to open Google Chrome and perform the requested search.";
-            } else if (contentLower.includes('help')) {
-              reply = "You can ask me to open programs, edit code files, manage projects, or help write code. Just let me know what you need!";
-            }
+        // Python backend (via useAgentBridge) takes over from here.
+        // addAssistantMessage + setIsThinking(false) are called when
+        // the backend sends "task_done" or "error" back over WebSocket.
 
+        return activeId;
+      },
+
+      setIsThinking: (value) => {
+        if (_thinkingTimer) {
+          clearTimeout(_thinkingTimer);
+          _thinkingTimer = null;
+        }
+        if (value) {
+          // Auto-unfreeze UI if backend never responds within 3 minutes
+          _thinkingTimer = setTimeout(() => {
+            set({ isThinking: false });
+            _thinkingTimer = null;
+            // Add a visible error message to the active session
+            const state = useChatStore.getState();
+            if (state.currentSessionId) {
+              state.addAssistantMessage(
+                state.currentSessionId,
+                'Error: Agent timed out — no response received within 3 minutes. The backend may have crashed. Please try again.'
+              );
+            }
+          }, THINKING_TIMEOUT_MS);
+        }
+        set({ isThinking: value });
+      },
+
+      addAssistantMessage: (sessionId, content) => {
+        set((s) => ({
+          sessions: s.sessions.map((sess) => {
+            if (sess.id !== sessionId) return sess;
             return {
-              isThinking: false,
-              sessions: s.sessions.map((sess) => {
-                if (sess.id === activeId) {
-                  return {
-                    ...sess,
-                    messages: [...sess.messages, { role: 'assistant' as const, content: reply }],
-                  };
-                }
-                return sess;
-              }),
+              ...sess,
+              messages: [...sess.messages, { role: 'assistant' as const, content }],
             };
-          });
-        }, 1500);
+          }),
+        }));
       },
     }),
     {

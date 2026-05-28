@@ -1,0 +1,60 @@
+# ── WebSocket server ─────────────────────────────────────────────────────────
+websockets>=12.0
+
+# ── LLM APIs ─────────────────────────────────────────────────────────────────
+anthropic>=0.40.0
+openai>=1.50.0
+
+# ── Image processing ─────────────────────────────────────────────────────────
+Pillow>=10.0.0
+imagehash>=4.3.1          # perceptual hashing for Recipe Engine
+
+# ── OCR (semantic signature for Recipe Engine) ───────────────────────────────
+pytesseract>=0.3.10
+
+# ── Browser automation (Element Detector — browser tasks) ────────────────────
+playwright>=1.48.0        # after install: `playwright install chromium`
+
+# ── Database (Memory Layer) ───────────────────────────────────────────────────
+aiosqlite>=0.20.0
+
+# ── Host-mode desktop control (real Windows execution without a VM) ───────────
+pyautogui>=0.9.54         # mouse + keyboard control on host OS
+pyperclip>=1.8.2          # clipboard-based text input (faster + unicode-safe)
+
+# ── Config / utilities ───────────────────────────────────────────────────────
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+# ── Agent-S3 (local path install) ────────────────────────────────────────────
+# Run from project root: pip install -e ./Agent-S
+# (do NOT pip-install — we reference it via sys.path in main.py)
+
+# ── trycua/cua (OS sandbox manager) ──────────────────────────────────────────
+# pip install git+https://github.com/trycua/cua.git
+# Provides: Sandbox, Image  (local QEMU backend)
+
+# ── ShowUI-2B (primary local VLA) ────────────────────────────────────────────
+# Install before first run: pip install -r requirements.txt
+# CUDA 12.x required for bitsandbytes NF4 quantization on Windows
+transformers>=4.45.0          # Qwen2VLForConditionalGeneration
+qwen-vl-utils>=0.0.8          # process_vision_info (official ShowUI helper)
+bitsandbytes>=0.44.0          # NF4 4-bit quantization — needs CUDA
+accelerate>=0.34.0            # device_map="auto" multi-GPU / offload
+
+# ── Local model serving ───────────────────────────────────────────────────────
+# vLLM must be installed separately on the GPU machine:
+#   pip install vllm
+# Models served:
+#   Fara-7B          ~14 GB  — web task planning
+#   OpenCUA-7B       ~14 GB  — desktop task planning
+#   UI-TARS-1.5-7B   ~14 GB  — coordinate grounding
+#   Qwen2-VL-2B      ~4 GB   — Tier 3 Verifier
+# Total: ~28 GB on one L40S
+
+# ── OmniParser-v2 (Element Detector — desktop tasks) ─────────────────────────
+# Install from repo: pip install git+https://github.com/microsoft/OmniParser.git
+# GPU required — only runs for desktop tasks, never for browser tasks
+
+# ── Open Policy Agent ─────────────────────────────────────────────────────────
+# System install (not pip): https://www.openpolicyagent.org/docs/latest/#1-download-opa

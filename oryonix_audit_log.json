@@ -1,0 +1,2 @@
+{"event_type": "TASK_START", "task_id": "test-task-abc", "timestamp": 1779831991.635306, "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000", "hash": "0b6c3a19c1da6d0678f82c518980fa2d71d3f04f49128c935ec4f88f4064f449", "data": {"goal": "clean path"}}
+{"event_type": "TASK_COMPLETED", "task_id": "test-task-abc", "timestamp": 1779831991.6353214, "prev_hash": "0b6c3a19c1da6d0678f82c518980fa2d71d3f04f49128c935ec4f88f4064f449", "hash": "9fc21351823a623ec32113ee5ab1fc48a75f9a371c27819821fa4d3c05831cd8", "data": {"outcome": "SUCCESS"}}

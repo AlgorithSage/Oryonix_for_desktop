@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+AI_COWORKER/
+Agent-S/
+
+# Secrets — never commit
+.env
+*.env
+agent_backend/.env
+

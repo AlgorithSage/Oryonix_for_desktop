@@ -3,11 +3,27 @@ import Sidebar from './components/sidebar/Sidebar';
 import ChatWindow from './components/chat/ChatWindow';
 import SearchModal from './components/chat/SearchModal';
 import { useThemeStore } from './stores/useThemeStore';
+import { useAgentBridge } from './stores/useAgentBridge';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { theme } = useThemeStore();
+  const { connect, status } = useAgentBridge();
+
+  // Connect to the Python backend WebSocket once on app mount.
+  // Tauri spawns the Python process at startup; this retries until it's ready.
+  useEffect(() => {
+    connect();
+  }, []);
+
+  // If retries are fully exhausted and status hits 'error', try again every 10s.
+  // Calling connect() resets _retries to 0 and starts a fresh retry sequence.
+  useEffect(() => {
+    if (status !== 'error') return;
+    const timer = setTimeout(() => connect(), 10_000);
+    return () => clearTimeout(timer);
+  }, [status, connect]);
 
   // Sync theme with document root class list
   useEffect(() => {
