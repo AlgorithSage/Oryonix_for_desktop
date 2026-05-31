@@ -3,8 +3,9 @@ import { useChatStore } from '../../stores/useChatStore';
 import { useThemeStore } from '../../stores/useThemeStore';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
-import { PanelLeft, Sun, Moon } from 'lucide-react';
+import { PanelLeft, Sun, Moon, ChevronDown, SquarePen } from 'lucide-react';
 import Lenis from 'lenis';
+import GridLoader from '../smoothui/grid-loader';
 
 interface ChatWindowProps {
   sidebarOpen: boolean;
@@ -12,13 +13,33 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowProps) {
-  const { sessions, currentSessionId, isThinking } = useChatStore();
+  const { 
+    sessions, 
+    currentSessionId, 
+    isThinking,
+    selectedModel,
+    availableModels,
+    isOllamaConnected,
+    fetchModels,
+    setSelectedModel,
+    createSession
+  } = useChatStore();
   const { theme, toggleTheme } = useThemeStore();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
   const messages = currentSession ? currentSession.messages : [];
+
+  // Poll Ollama status on mount and every 5 seconds
+  useEffect(() => {
+    fetchModels();
+    const interval = setInterval(() => {
+      fetchModels();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchModels]);
 
   // Initialize Lenis on the scroll container
   useEffect(() => {
@@ -48,49 +69,139 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
     };
   }, [messages.length === 0]); // Re-initialize if switching between empty state and message list
 
-  // Auto-scroll to bottom using Lenis
+  // Auto-scroll to bottom using bottomRef scrollIntoView
   useEffect(() => {
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo('bottom', { duration: 0.6 });
-    } else {
-      scrollRef.current?.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
-    }
-  }, [messages]);
+    if (messages.length === 0) return;
+
+    const timer = setTimeout(() => {
+      if (bottomRef.current) {
+        const isStreaming = messages.length > 0 && messages[messages.length - 1].role === 'assistant';
+        // Use smooth animation for general messages, auto (instant) for streaming to keep up with typing speed
+        const behavior = isThinking || isStreaming ? 'auto' : 'smooth';
+        
+        bottomRef.current.scrollIntoView({ 
+          behavior,
+          block: 'end'
+        });
+      }
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [messages, isThinking]);
+
+  // Re-pin scroll to bottom when sidebar transitions (open or closed)
+  useEffect(() => {
+    if (messages.length === 0) return;
+
+    // Trigger scrolls during and after the sidebar transition (e.g., 50ms, 150ms, 300ms)
+    // to ensure it stays pinned perfectly to the bottom as the layout resizes
+    const timeouts = [50, 150, 300].map((delay) => 
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'end'
+        });
+      }, delay)
+    );
+
+    return () => timeouts.forEach(clearTimeout);
+  }, [sidebarOpen]);
+
+  // Keyboard shortcut for New Chat (Ctrl+J)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'j') {
+        e.preventDefault();
+        createSession();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [createSession]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[var(--bg-main)] overflow-hidden min-w-0 select-none transition-colors duration-150">
       {/* Top Model Bar */}
-      <div className="h-14 px-6 flex items-center justify-between shrink-0">
+      <div className="h-14 px-6 flex items-center justify-between shrink-0 border-b border-[var(--border-color)]">
         <div className="flex items-center gap-3">
           {/* Re-open Sidebar Icon */}
           {!sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(true)}
-              className="text-zinc-500 hover:text-[var(--text-main)] transition-colors cursor-pointer p-1 rounded hover:bg-[var(--bg-hover)] -ml-2"
+              className="text-zinc-500 hover:text-[var(--text-main)] transition-colors cursor-pointer p-1 rounded-full hover:bg-[var(--bg-hover)] -ml-2"
               title="Expand Sidebar"
             >
               <PanelLeft size={16} />
             </button>
           )}
           {currentSession && messages.length > 0 && (
-            <span className="text-xs font-semibold text-zinc-400 font-sans truncate max-w-[250px] animate-fade-in">
+            <span className="text-xs font-semibold text-zinc-400 font-sans truncate max-w-[150px] animate-fade-in">
               {currentSession.title}
             </span>
           )}
         </div>
 
-        {/* Top Right Actions */}
-        <div className="flex items-center gap-2">
+        {/* Model Selector and Status */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-full px-3 py-1 text-xs select-none">
+            {/* Connection Status dot */}
+            <span className="relative flex h-2 w-2">
+              {isOllamaConnected ? (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </>
+              ) : (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </>
+              )}
+            </span>
+            
+            <span className="font-medium text-zinc-400 font-sans">
+              {isOllamaConnected ? 'Ollama Online' : 'Ollama Offline'}
+            </span>
+
+            {isOllamaConnected && availableModels.length > 0 && (
+              <>
+                <div className="h-3 w-[1px] bg-[var(--border-color)] mx-1" />
+                <div className="relative flex items-center text-zinc-200 font-semibold cursor-pointer gap-1">
+                  <select
+                    value={selectedModel || ''}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    className="bg-transparent text-zinc-200 font-semibold cursor-pointer outline-none border-none py-0.5 pr-4 appearance-none font-sans"
+                  >
+                    {availableModels.map((model) => (
+                      <option key={model} value={model} className="bg-[var(--bg-sidebar)] text-[var(--text-main)] py-1 font-sans">
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={11} className="absolute right-0 pointer-events-none text-zinc-500" />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* New Chat Button (only visible when in an active conversation) */}
+          {messages.length > 0 && (
+            <button
+              onClick={() => createSession()}
+              className="text-zinc-500 hover:text-[var(--text-main)] transition-colors cursor-pointer p-1.5 rounded-full hover:bg-[var(--bg-hover)] animate-fade-in"
+              title="New Chat (Ctrl+J)"
+            >
+              <SquarePen size={17} />
+            </button>
+          )}
+
           {/* Theme Toggle Icon */}
           <button 
             onClick={(e) => toggleTheme(e)}
-            className="text-zinc-500 hover:text-[var(--text-main)] transition-colors cursor-pointer p-1.5 rounded hover:bg-[var(--bg-hover)]"
+            className="text-zinc-500 hover:text-[var(--text-main)] transition-colors cursor-pointer p-1.5 rounded-full hover:bg-[var(--bg-hover)]"
             title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
           </button>
         </div>
       </div>
@@ -98,9 +209,9 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
       {messages.length === 0 ? (
         /* Main Chat Scroll Feed - Empty State */
         <div className="flex-1 overflow-y-auto" ref={scrollRef}>
-          <div className="h-full flex flex-col items-center justify-center max-w-4xl mx-auto w-full px-6 pt-10 pb-28">
+          <div className="h-full flex flex-col items-center justify-center max-w-4xl mx-auto w-full px-6 pt-10 pb-44">
             <div className="flex flex-col items-center text-center mb-5">
-              <h1 className="text-3xl font-semibold text-[var(--text-main)] tracking-tight">Chat with your model</h1>
+              <h1 className="text-3xl font-semibold text-[var(--text-main)] tracking-tight">Chat with Oryonix</h1> 
             </div>
 
             {/* Embedded Floating Chat Input Card */}
@@ -114,20 +225,43 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
         <div className="flex-1 flex flex-col h-full overflow-hidden">
           {/* Scrollable Message Feed */}
           <div className="flex-1 overflow-y-auto" ref={scrollRef}>
-            <div className="max-w-[860px] mx-auto w-full pt-6 pb-1 px-4 space-y-6 flex flex-col">
+            <div className="max-w-[860px] mx-auto w-full pt-6 pb-8 px-4 space-y-6 flex flex-col">
               <div className="space-y-6 flex-1">
                 {messages.map((msg, index) => (
-                  <MessageBubble key={index} message={msg} />
+                  <MessageBubble key={index} message={msg} index={index} />
                 ))}
               </div>
 
               {/* Thinking compiling indicator */}
               {isThinking && (
-                <div className="flex items-center gap-2 text-[#00c896] font-mono text-[10px] px-6 py-2 select-none animate-fade-in">
-                  <span className="animate-pulse">❯</span>
-                  <span className="animate-pulse tracking-widest font-bold">ORYONIX IS RUNNING MODEL INFERENCE...</span>
+                <div className="flex items-start gap-3 select-none animate-fade-in w-full">
+                  {/* Left loader area - perfectly matches the w-7 h-7 badge size and centering */}
+                  <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                    <GridLoader 
+                      size={16} 
+                      gap={1.5} 
+                      color="white" 
+                      mode="stagger" 
+                      pattern={[
+                        [1, 1, 1],
+                        [1, 1, 1],
+                        [1, 1, 1]
+                      ]} 
+                      speed="normal"
+                      rounded
+                    />
+                  </div>
+                  
+                  {/* Right text area - perfectly matches the py-1 content alignment */}
+                  <div className="flex flex-col py-1 flex-1">
+                    <span className="text-[#F56C13] font-mono text-[9px] tracking-widest font-bold uppercase animate-pulse">Running Inference</span>
+                    <span className="text-zinc-500 text-[10px] font-sans mt-0.5">Oryonix is formulating response...</span>
+                  </div>
                 </div>
               )}
+
+              {/* Bulletproof anchor for auto-scrolling */}
+              <div ref={bottomRef} className="h-2 w-full shrink-0" />
             </div>
           </div>
 

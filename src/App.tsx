@@ -5,7 +5,16 @@ import SearchModal from './components/chat/SearchModal';
 import { useThemeStore } from './stores/useThemeStore';
 
 function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('oryonix_sidebar_open');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const handleSetSidebarOpen = (open: boolean) => {
+    setSidebarOpen(open);
+    localStorage.setItem('oryonix_sidebar_open', String(open));
+  };
+
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { theme } = useThemeStore();
 
@@ -36,7 +45,7 @@ function App() {
       {/* Sidebar - always render to support sliding transitions */}
       <Sidebar 
         isOpen={sidebarOpen} 
-        setSidebarOpen={setSidebarOpen} 
+        setSidebarOpen={handleSetSidebarOpen} 
         onSearchClick={() => setIsSearchOpen(true)}
       />
 
@@ -44,7 +53,7 @@ function App() {
       <div className={`flex-1 flex flex-col min-w-0 bg-[var(--bg-main)] my-2 mr-2 rounded-2xl overflow-hidden transition-all duration-150 ${!sidebarOpen ? 'ml-2' : 'ml-0'}`}>
         {/* Chat Feed & Top Area */}
         <div className="flex-1 overflow-hidden flex flex-col bg-[var(--bg-main)] transition-colors duration-150">
-          <ChatWindow sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <ChatWindow sidebarOpen={sidebarOpen} setSidebarOpen={handleSetSidebarOpen} />
         </div>
       </div>
 

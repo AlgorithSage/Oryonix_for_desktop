@@ -78,7 +78,7 @@ export default function ChatInput() {
   if (!isGrown) {
     return (
       <div className="w-full select-none font-sans px-4 pt-0 pb-2 shrink-0">
-        <div className="max-w-4xl mx-auto bg-[var(--bg-input)] shadow-md flex flex-row items-center rounded-[28px] py-2.5 pl-5 pr-2 transition-all duration-300 ease-in-out">
+        <div className="max-w-4xl mx-auto bg-[var(--bg-input)] shadow-[var(--input-shadow)] flex flex-row items-center rounded-[28px] py-2.5 pl-5 pr-2 transition-all duration-300 ease-in-out">
           <textarea
             ref={textareaRef}
             value={input}
@@ -92,7 +92,7 @@ export default function ChatInput() {
           />
           {/* Inline actions */}
           <div className="flex items-center gap-1 shrink-0 ml-auto pl-2">
-            <button className="w-9 h-9 !p-0 flex items-center justify-center text-zinc-400 hover:text-[var(--text-main)] cursor-pointer transition-colors rounded hover:!bg-[var(--bg-hover)] !bg-transparent !border-none !shadow-none" title="Voice Input">
+            <button className="w-9 h-9 !p-0 flex items-center justify-center text-zinc-400 hover:text-[var(--text-main)] cursor-pointer transition-colors rounded-full hover:!bg-[var(--bg-hover)] !bg-transparent !border-none !shadow-none" title="Voice Input">
               <Mic size={18} className="stroke-[1.8]" />
             </button>
             <button
@@ -104,8 +104,8 @@ export default function ChatInput() {
                   : 'text-[#F56C13] hover:text-[#e05e0d]'}`}
               title="Send Message"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" />
+              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="12" fill="currentColor" stroke="none" />
                 <path d="m16 12-4-4-4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M12 16V8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -119,7 +119,7 @@ export default function ChatInput() {
   /* ── Box shape: multi-row layout ── */
   return (
     <div className="w-full select-none font-sans px-4 pt-0 pb-2 shrink-0">
-      <div className="max-w-4xl mx-auto bg-[var(--bg-input)] shadow-md flex flex-col rounded-2xl p-3 gap-2 transition-all duration-300 ease-in-out">
+      <div className="max-w-4xl mx-auto bg-[var(--bg-input)] shadow-[var(--input-shadow)] flex flex-col rounded-2xl p-3 gap-2 transition-all duration-300 ease-in-out">
         {/* Textarea takes full width — no wrapper row, no gap */}
         <textarea
           ref={textareaRef}
@@ -136,7 +136,7 @@ export default function ChatInput() {
         {/* Bottom actions row */}
         <div className="flex items-center justify-end px-0.5 animate-fade-in">
           <div className="flex items-center gap-1">
-            <button className="w-9 h-9 !p-0 flex items-center justify-center text-zinc-400 hover:text-[var(--text-main)] cursor-pointer transition-colors rounded hover:!bg-[var(--bg-hover)] !bg-transparent !border-none !shadow-none" title="Voice Input">
+            <button className="w-9 h-9 !p-0 flex items-center justify-center text-zinc-400 hover:text-[var(--text-main)] cursor-pointer transition-colors rounded-full hover:!bg-[var(--bg-hover)] !bg-transparent !border-none !shadow-none" title="Voice Input">
               <Mic size={18} className="stroke-[1.8]" />
             </button>
             <button
@@ -148,8 +148,8 @@ export default function ChatInput() {
                   : 'text-[#F56C13] hover:text-[#e05e0d]'}`}
               title="Send Message"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" />
+              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="12" fill="currentColor" stroke="none" />
                 <path d="m16 12-4-4-4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M12 16V8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
