@@ -69,6 +69,7 @@ Output format:
 
 Guidelines:
 - Choose the correct action to proceed.
+- To launch or search for local apps/tools, use the "hotkey" action with key "win" to open the Start menu, then "type" the name of the app, and send "hotkey" key "enter".
 - Respond with action "done" when the goal is achieved, or "fail" if impossible.
 """
 
@@ -103,11 +104,12 @@ class LLMRouter:
                 self._current_tier = ModelTier.CLOUD
 
         if self._current_tier == ModelTier.CLOUD:
-            logger.info("Routing to CLOUD tier (Claude / Anthropic)")
+            logger.info(f"Routing to CLOUD tier (Groq {self.config.groq_brain_model})")
             engine_params = {
-                "engine_type": "anthropic",
-                "model": "claude-sonnet-4-6",
-                "api_key": self.config.claude_api_key,
+                "engine_type": "openai",
+                "model": self.config.groq_brain_model,
+                "api_key": self.config.groq_api_key,
+                "base_url": "https://api.groq.com/openai/v1",
             }
             prompt = self.get_system_prompt(task_type, SandboxACI)
             return LMMAgent(engine_params=engine_params, system_prompt=prompt)

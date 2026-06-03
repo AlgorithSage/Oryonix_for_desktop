@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { useChatStore } from '../../stores/useChatStore';
 import { useThemeStore } from '../../stores/useThemeStore';
+import { useAgentBridge } from '../../stores/useAgentBridge';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
 import { PanelLeft, Sun, Moon, ChevronDown, SquarePen } from 'lucide-react';
@@ -24,6 +25,7 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
     setSelectedModel,
     createSession
   } = useChatStore();
+  const { currentStep } = useAgentBridge();
   const { theme, toggleTheme } = useThemeStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -163,7 +165,7 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
               {isOllamaConnected ? 'Ollama Online' : 'Ollama Offline'}
             </span>
 
-            {isOllamaConnected && availableModels.length > 0 && (
+            {availableModels.length > 0 && (
               <>
                 <div className="h-3 w-[1px] bg-[var(--border-color)] mx-1" />
                 <div className="relative flex items-center text-zinc-200 font-semibold cursor-pointer gap-1">
@@ -254,8 +256,12 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
                   
                   {/* Right text area - perfectly matches the py-1 content alignment */}
                   <div className="flex flex-col py-1 flex-1">
-                    <span className="text-[#F56C13] font-mono text-[9px] tracking-widest font-bold uppercase animate-pulse">Running Inference</span>
-                    <span className="text-zinc-500 text-[10px] font-sans mt-0.5">Oryonix is formulating response...</span>
+                    <span className="text-[#F56C13] font-mono text-[9px] tracking-widest font-bold uppercase animate-pulse">
+                      {currentStep ? 'Agent Executing' : 'Running Inference'}
+                    </span>
+                    <span className="text-zinc-300 text-[11px] font-sans mt-0.5 font-medium leading-relaxed">
+                      {currentStep || 'Oryonix is formulating response...'}
+                    </span>
                   </div>
                 </div>
               )}

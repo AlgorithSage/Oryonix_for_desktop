@@ -37,6 +37,17 @@ class Config:
     # Set SHOWUI_MODEL_PATH= in .env to use a local copy.
     showui_model_path: str = "showlab/ShowUI-2B"
 
+    # ── Groq API — Actor fallback when ShowUI / local GPU is unavailable ──────
+    # Get a free key at console.groq.com
+    groq_api_key: str = ""
+    groq_actor_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    groq_brain_model: str = "meta-llama/llama-4-maverick-17b-128e-instruct"
+
+    # ── Ollama local VLM actor (preferred over Groq when no GPU for ShowUI) ──
+    # Set OLLAMA_ACTOR_MODEL= to the exact model name shown by `ollama list`.
+    # Leave empty to skip and fall through to Groq.
+    ollama_actor_model: str = ""
+
     # ── Separate VLM endpoint for Verifier Tier 3 ────────────────────────────
     # Leave empty to skip Tier 3 and go straight to Claude API (Tier 4).
     # Set to e.g. http://localhost:8001/v1 when Qwen2-VL-2B runs on a separate port.
@@ -57,6 +68,11 @@ class Config:
     ws_host: str = "127.0.0.1"
     ws_port: int = 8765
 
+    # ── Windows UIA Layer ─────────────────────────────────────────────────────
+    # When True, the orchestrator will attempt UIA-based control automation
+    # (via Microsoft UFO's pywinauto engine) before falling back to ShowUI.
+    use_windows_uia: bool = False
+
     @classmethod
     def from_env(cls) -> "Config":
         return cls(
@@ -70,6 +86,10 @@ class Config:
             uitars_model_id=os.getenv("UITARS_MODEL_ID", "ByteDance/UI-TARS-1.5-7B"),
             qwen_vlm_model_id=os.getenv("QWEN_VLM_MODEL_ID", "Qwen/Qwen2-VL-2B-Instruct"),
             showui_model_path=os.getenv("SHOWUI_MODEL_PATH", "showlab/ShowUI-2B"),
+            groq_api_key=os.getenv("GROQ_API_KEY", ""),
+            groq_actor_model=os.getenv("GROQ_ACTOR_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct"),
+            groq_brain_model=os.getenv("GROQ_BRAIN_MODEL", "meta-llama/llama-4-maverick-17b-128e-instruct"),
+            ollama_actor_model=os.getenv("OLLAMA_ACTOR_MODEL", ""),
             qwen_vlm_url=os.getenv("QWEN_VLM_URL", ""),
             sandbox_backend=os.getenv("SANDBOX_BACKEND", "local_qemu"),  # type: ignore[arg-type]
             local_task_token_budget=int(os.getenv("LOCAL_TASK_TOKEN_BUDGET", "500000")),
@@ -78,6 +98,7 @@ class Config:
             approval_timeout_seconds=int(os.getenv("APPROVAL_TIMEOUT_SECONDS", "300")),
             ws_host=os.getenv("WS_HOST", "127.0.0.1"),
             ws_port=int(os.getenv("WS_PORT", "8765")),
+            use_windows_uia=os.getenv("USE_WINDOWS_UIA", "false").lower() == "true",
         )
 
 

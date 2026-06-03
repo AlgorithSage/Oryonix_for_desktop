@@ -3,9 +3,18 @@ Oryonix Agent Backend — entry point.
 Adds Agent-S3 to sys.path, then starts the WebSocket server with fully injected Orchestrator.
 """
 import asyncio
+import logging
 import subprocess
 import sys
 from pathlib import Path
+
+# Configure basic logging to stdout at INFO level
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
 
 
 def _free_port(port: int) -> None:

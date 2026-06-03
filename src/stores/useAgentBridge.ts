@@ -20,6 +20,7 @@ export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'er
 interface AgentBridgeState {
   status: ConnectionStatus;
   currentStep: string | null;   // latest step description from backend step_update
+  isPaused: boolean;
   // ── Actions ──────────────────────────────────────────────────────────────
   connect: () => void;
   disconnect: () => void;
@@ -29,6 +30,9 @@ interface AgentBridgeState {
   sendApprovalDeny: (taskId: string) => void;
   sendHandback: (taskId: string) => void;
   sendForceCloud: (taskId: string) => void;
+  sendPauseTask: () => void;
+  sendResumeTask: () => void;
+  sendKillTask: () => void;
 }
 
 // Module-level WebSocket ref — kept outside Zustand so re-renders never
@@ -40,6 +44,7 @@ let _retryTimer: ReturnType<typeof setTimeout> | null = null;
 export const useAgentBridge = create<AgentBridgeState>((set) => ({
   status: 'disconnected',
   currentStep: null,
+  isPaused: false,
 
   connect: () => {
     // Guard: do nothing if already connecting or connected
@@ -135,6 +140,30 @@ export const useAgentBridge = create<AgentBridgeState>((set) => ({
       _ws.send(JSON.stringify({ type: 'force_cloud', task_id: taskId }));
     }
   },
+
+  sendPauseTask: () => {
+    console.log('[AgentBridge] sendPauseTask called. ws readyState:', _ws?.readyState);
+    if (_ws?.readyState === WebSocket.OPEN) {
+      console.log('[AgentBridge] Sending type: pause_task');
+      _ws.send(JSON.stringify({ type: 'pause_task' }));
+    }
+  },
+
+  sendResumeTask: () => {
+    console.log('[AgentBridge] sendResumeTask called. ws readyState:', _ws?.readyState);
+    if (_ws?.readyState === WebSocket.OPEN) {
+      console.log('[AgentBridge] Sending type: resume_task');
+      _ws.send(JSON.stringify({ type: 'resume_task' }));
+    }
+  },
+
+  sendKillTask: () => {
+    console.log('[AgentBridge] sendKillTask called. ws readyState:', _ws?.readyState);
+    if (_ws?.readyState === WebSocket.OPEN) {
+      console.log('[AgentBridge] Sending type: kill_task');
+      _ws.send(JSON.stringify({ type: 'kill_task' }));
+    }
+  },
 }));
 
 // ── Inbound message handler ───────────────────────────────────────────────────
@@ -144,12 +173,14 @@ type SetFn = (partial: Partial<AgentBridgeState>) => void;
 
 function handleMessage(msg: Record<string, unknown>, set: SetFn): void {
   const chat = useChatStore.getState();
+  console.log('[AgentBridge] Received WebSocket message:', msg);
 
   switch (msg.type) {
     case 'state_change': {
       const state = msg.state as string;
       const active = !['FAILED', 'SUCCEEDED', 'IDLE'].includes(state);
       chat.setIsThinking(active);
+      set({ isPaused: state === 'PAUSED_FOR_HUMAN_TAKEOVER' });
       if (!active) set({ currentStep: null });
       break;
     }

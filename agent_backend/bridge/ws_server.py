@@ -92,42 +92,68 @@ class WebSocketServer:
         try:
             message: dict[str, Any] = json.loads(raw)
         except json.JSONDecodeError:
+            print(f"[WebSocket Server] Received non-JSON message: {raw!r}", flush=True)
             logger.error(f"[Oryonix] Received non-JSON message: {raw!r}")
             return
 
         msg_type = message.get("type", "")
+        print(f"[WebSocket Server] Received msg_type: {msg_type} (raw: {raw})", flush=True)
 
         if msg_type == "run_task":
             goal = str(message.get("goal", ""))
             session_id = str(message.get("session_id", ""))
             if self._orchestrator is not None:
-                asyncio.create_task(self._orchestrator.run(goal, session_id))
+                print(f"[WebSocket Server] Dispatching run_task for goal='{goal}'", flush=True)
+                task = asyncio.create_task(self._orchestrator.run(goal, session_id))
+                if hasattr(self._orchestrator, "set_active_task"):
+                    self._orchestrator.set_active_task(task)
             else:
                 # Echo mode — Orchestrator not yet wired (active until Chunk 3)
+                print("[WebSocket Server] Orchestrator is None, running echo response", flush=True)
                 asyncio.create_task(self._echo_response(goal))
+
+        elif msg_type == "pause_task":
+            print("[WebSocket Server] Dispatching pause_task", flush=True)
+            if self._orchestrator is not None and hasattr(self._orchestrator, "pause_task"):
+                self._orchestrator.pause_task()
+
+        elif msg_type == "resume_task":
+            print("[WebSocket Server] Dispatching resume_task", flush=True)
+            if self._orchestrator is not None and hasattr(self._orchestrator, "resume_task"):
+                self._orchestrator.resume_task()
+
+        elif msg_type == "kill_task":
+            print("[WebSocket Server] Dispatching kill_task", flush=True)
+            if self._orchestrator is not None and hasattr(self._orchestrator, "kill_task"):
+                asyncio.create_task(self._orchestrator.kill_task())
 
         elif msg_type == "approval_grant":
             task_id = str(message.get("task_id", ""))
+            print(f"[WebSocket Server] Dispatching approval_grant for task {task_id}", flush=True)
             if task_id in self._approval_events:
                 self._approval_granted[task_id] = True
                 self._approval_events[task_id].set()
 
         elif msg_type == "approval_deny":
             task_id = str(message.get("task_id", ""))
+            print(f"[WebSocket Server] Dispatching approval_deny for task {task_id}", flush=True)
             if task_id in self._approval_events:
                 self._approval_granted[task_id] = False
                 self._approval_events[task_id].set()
 
         elif msg_type == "handback":
             task_id = str(message.get("task_id", ""))
+            print(f"[WebSocket Server] Dispatching handback for task {task_id}", flush=True)
             if self._orchestrator is not None and hasattr(self._orchestrator, "handle_handback"):
                 await self._orchestrator.handle_handback(task_id)
 
         elif msg_type == "force_cloud":
+            print("[WebSocket Server] Dispatching force_cloud", flush=True)
             if self._orchestrator is not None and hasattr(self._orchestrator, "router"):
                 self._orchestrator.router.force_cloud()
 
         else:
+            print(f"[WebSocket Server] Unknown message type: {msg_type!r}", flush=True)
             logger.warning(f"[Oryonix] Unknown message type: {msg_type!r}")
 
     async def _echo_response(self, goal: str) -> None:

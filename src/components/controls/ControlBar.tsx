@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Square, Pause, Cpu, HardDrive } from 'lucide-react';
+import { Square, Pause, Play, Cpu, HardDrive } from 'lucide-react';
 import { useChatStore } from '../../stores/useChatStore';
+import { useAgentBridge } from '../../stores/useAgentBridge';
 
 export default function ControlBar() {
   const { isThinking } = useChatStore();
+  const { isPaused, sendPauseTask, sendResumeTask, sendKillTask } = useAgentBridge();
   const [autonomous, setAutonomous] = useState(true);
   const [cpu, setCpu] = useState(2.4);
   const [ram, setRam] = useState(132);
@@ -53,26 +55,39 @@ export default function ControlBar() {
           <span className={`font-bold uppercase text-[9px] flex items-center gap-1
             ${isThinking ? 'text-amber-500' : 'text-emerald-500'}`}>
             <span className={`w-1 h-1 rounded-full ${isThinking ? 'bg-amber-500 animate-ping' : 'bg-emerald-500 animate-pulse'}`}></span>
-            {isThinking ? 'Executing Plan' : 'System Idle'}
+            {isThinking ? (isPaused ? 'Execution Paused' : 'Executing Plan') : 'System Idle'}
           </span>
         </div>
       </div>
 
       {/* Right: Operational Controls */}
       <div className="flex items-center gap-2">
-        <button 
-          className="px-2.5 py-1 rounded bg-[var(--bg-hover)] border border-[var(--border-color)] hover:border-zinc-500 text-[var(--text-main)] transition-all cursor-pointer flex items-center gap-1.5"
-          title="Pause Execution"
-        >
-          <Pause size={10} />
-          <span>Pause</span>
-        </button>
+        {isThinking && (
+          <button 
+            onClick={isPaused ? sendResumeTask : sendPauseTask}
+            className={`px-2.5 py-1 rounded border transition-all cursor-pointer flex items-center gap-1.5 
+              ${isPaused 
+                ? 'bg-purple-950/30 border-purple-700 text-purple-300 hover:bg-purple-900/40' 
+                : 'bg-[var(--bg-hover)] border-[var(--border-color)] hover:border-zinc-500 text-[var(--text-main)]'
+              }`}
+            title={isPaused ? "Resume Execution" : "Pause Execution"}
+          >
+            {isPaused ? <Play size={10} fill="currentColor" /> : <Pause size={10} />}
+            <span>{isPaused ? 'Resume' : 'Pause'}</span>
+          </button>
+        )}
 
         <button 
-          className="px-2.5 py-1 rounded bg-transparent border border-red-900/60 text-red-400 hover:bg-red-950/40 hover:border-red-800 transition-all cursor-pointer flex items-center gap-1.5"
+          onClick={sendKillTask}
+          disabled={!isThinking}
+          className={`px-2.5 py-1 rounded transition-all flex items-center gap-1.5
+            ${isThinking 
+              ? 'bg-transparent border border-red-900/60 text-red-400 hover:bg-red-950/40 hover:border-red-800 cursor-pointer' 
+              : 'bg-transparent border border-[var(--border-color)] text-zinc-600 cursor-not-allowed opacity-50'
+            }`}
           title="Force Kill Operations"
         >
-          <Square size={9} fill="currentColor" className="opacity-90" />
+          <Square size={9} fill={isThinking ? "currentColor" : "none"} className="opacity-95" />
           <span>Kill</span>
         </button>
       </div>

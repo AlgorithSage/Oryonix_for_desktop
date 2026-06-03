@@ -33,5 +33,383 @@
     ],
     "last_verified_success": "2026-05-26T12:00:00Z",
     "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-settings",
+    "name": "Open Windows Settings",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Settings", "System", "Windows"]
+    },
+    "steps": [
+      {
+        "type": "hotkey",
+        "params": {
+          "key": "win+i"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 2.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-chrome",
+    "name": "Open Google Chrome",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Chrome", "Google", "Browser"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "chrome"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 3.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-edge",
+    "name": "Open Microsoft Edge",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Edge", "Microsoft", "Browser"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "msedge"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 3.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-file-explorer",
+    "name": "Open File Explorer",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["File Explorer", "Explorer", "Files", "This PC"]
+    },
+    "steps": [
+      {
+        "type": "hotkey",
+        "params": {
+          "key": "win+e"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 2.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-calculator",
+    "name": "Open Calculator",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Calculator", "calc"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "calc"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 2.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-cmd",
+    "name": "Open Command Prompt",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Command Prompt", "cmd", "Terminal", "Console"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "cmd"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 2.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-powershell",
+    "name": "Open PowerShell",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["PowerShell", "PS"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "powershell"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 2.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-task-manager",
+    "name": "Open Task Manager",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Task Manager", "Processes"]
+    },
+    "steps": [
+      {
+        "type": "hotkey",
+        "params": {
+          "key": "ctrl+shift+escape"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 2.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-paint",
+    "name": "Open Paint",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Paint", "mspaint"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "mspaint"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 2.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-snipping-tool",
+    "name": "Open Snipping Tool",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Snipping Tool", "Snip", "Screenshot"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "snippingtool"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 2.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-firefox",
+    "name": "Open Firefox",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Firefox", "Mozilla"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "firefox"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 3.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-word",
+    "name": "Open Microsoft Word",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Word", "Microsoft Word"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "winword"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 3.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-excel",
+    "name": "Open Microsoft Excel",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["Excel", "Microsoft Excel", "Spreadsheet"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "excel"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 3.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
+  },
+  {
+    "recipe_id": "open-vscode",
+    "name": "Open Visual Studio Code",
+    "perceptual_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "semantic_signature": {
+      "labels": ["VS Code", "Visual Studio Code", "Code"]
+    },
+    "steps": [
+      {
+        "type": "open",
+        "params": {
+          "app_or_filename": "code"
+        }
+      },
+      {
+        "type": "wait",
+        "params": {
+          "time": 3.0
+        }
+      },
+      {
+        "type": "done"
+      }
+    ],
+    "last_verified_success": "",
+    "semantic_match_score": 1.0
   }
 ]

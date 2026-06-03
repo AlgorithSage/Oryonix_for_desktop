@@ -84,11 +84,78 @@ class RecipeEngine:
         except Exception as e:
             logger.error(f"Failed to load recipe library: {e}")
 
-    def match(self, screenshot: bytes) -> Optional[RecipeMatch]:
+    def match(self, screenshot: bytes, goal: Optional[str] = None) -> Optional[RecipeMatch]:
         """
-        Try to match screenshot against all recipes.
+        Try to match screenshot or task goal against all recipes.
         Returns the best RecipeMatch if HIT (tiebreaker applied), else None.
         """
+        # 0. NLP Goal matching (extremely fast, bypasses screenshot matches for offline/developer testing)
+        #    Generalized: checks all recipe labels AND name words against the goal.
+        #    Also includes common alias expansions (e.g. "browser" → chrome, "terminal" → cmd).
+        _GOAL_ALIASES: dict[str, list[str]] = {
+            "browser": ["chrome", "edge", "firefox"],
+            "terminal": ["cmd", "command prompt", "powershell"],
+            "file manager": ["file explorer", "explorer"],
+            "screenshots": ["snipping tool", "snip"],
+            "vscode": ["vs code", "visual studio code", "code"],
+            "word processor": ["word", "winword"],
+            "spreadsheet": ["excel"],
+        }
+
+        if goal:
+            goal_clean = goal.lower()
+
+            # Expand aliases: if goal says "open browser", add "chrome", "edge", "firefox" to search terms
+            expanded_terms: set[str] = set()
+            for alias, targets in _GOAL_ALIASES.items():
+                if alias in goal_clean:
+                    expanded_terms.update(targets)
+
+            # Generic action verbs and stopwords that shouldn't trigger a recipe by themselves
+            GENERIC_WORDS = {
+                "open", "close", "start", "run", "type", "click", "press", "show", "launch",
+                "please", "app", "application", "and", "the", "for", "with", "note", "type"
+            }
+
+            best_match: Optional[RecipeMatch] = None
+            best_score = 0
+
+            for recipe in self._recipes:
+                # Collect all matchable keywords from this recipe
+                recipe_keywords: set[str] = set()
+                for label in recipe.semantic_signature.get("labels", []):
+                    recipe_keywords.add(label.lower())
+                # Also add recipe name words
+                for word in recipe.name.lower().split():
+                    if len(word) > 2:  # skip tiny words like "and", "or"
+                        recipe_keywords.add(word)
+
+                # Score: count how many specific recipe keywords appear in the goal or expanded terms
+                score = 0
+                for kw in recipe_keywords:
+                    if kw in GENERIC_WORDS:
+                        continue
+                    if kw in goal_clean:
+                        score += 2  # direct goal mention is strong signal
+                    elif kw in expanded_terms:
+                        score += 1  # alias match is weaker
+
+                if score > best_score:
+                    best_score = score
+                    best_match = RecipeMatch(
+                        recipe=recipe,
+                        hash_score=1.0,
+                        semantic_score=1.0,
+                        is_hit=True,
+                    )
+
+            if best_match and best_score >= 2:
+                logger.info(
+                    f"Goal-based NLP recipe match HIT: '{best_match.recipe.name}' "
+                    f"(ID: {best_match.recipe.recipe_id}, score: {best_score})"
+                )
+                return best_match
+
         candidates: list[RecipeMatch] = []
         for recipe in self._recipes:
             # 1. Perceptual Hash matching (Layer 1)

@@ -1,21 +1,18 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 
-// Safe fetch helper that works seamlessly both in desktop (Tauri) and standard browser environments
-const safeFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-  const isTauri = typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
-  if (isTauri) {
-    try {
-      return await tauriFetch(input, init);
-    } catch (e) {
-      console.warn('Tauri fetch failed, falling back to standard fetch:', e);
-      return await fetch(input, init);
-    }
-  } else {
-    return await fetch(input, init);
-  }
-};
+// ── Groq config (injected by Vite from root .env) ───────────────────────────
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY as string | undefined;
+const GROQ_CHAT_MODEL =
+  (import.meta.env.VITE_GROQ_CHAT_MODEL as string | undefined) ||
+  'llama-3.3-70b-versatile';
+
+const GROQ_MODELS = [
+  'llama-3.3-70b-versatile',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+];
+
+const OLLAMA_BASE_URL = 'http://localhost:11434';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -36,266 +33,241 @@ interface ChatState {
   isThinking: boolean;
   selectedModel: string | null;
   availableModels: string[];
+  ollamaModels: string[];
   isOllamaConnected: boolean | null;
   createSession: () => string;
   deleteSession: (id: string) => void;
   selectSession: (id: string) => void;
   togglePinSession: (id: string) => void;
-  renameSession: (id: string, title: string) => void;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, isAgentMode?: boolean) => Promise<void>;
   editMessage: (messageIndex: number, newContent: string) => Promise<void>;
   setSelectedModel: (model: string) => void;
   fetchModels: () => Promise<void>;
+  setIsThinking: (active: boolean) => void;
+  addAssistantMessage: (sessionId: string, text: string) => void;
 }
 
+// ── OpenAI-compatible streaming helper (works for both Groq and Ollama) ──────
+async function streamChatResponse(
+  endpoint: string,
+  model: string,
+  messages: Message[],
+  onToken: (token: string) => void,
+  apiKey?: string
+): Promise<void> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ model, messages, stream: true, temperature: 0.7, max_tokens: 1024 }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`API error ${response.status}: ${err}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('Streaming not supported by this browser');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const payload = line.slice(6).trim();
+      if (payload === '[DONE]') return;
+      try {
+        const parsed = JSON.parse(payload);
+        const token: string = parsed.choices?.[0]?.delta?.content ?? '';
+        if (token) onToken(token);
+      } catch {
+        // malformed chunk — skip
+      }
+    }
+  }
+}
+
+// ── Route: pick endpoint + key based on whether model is local Ollama ─────────
+function resolveEndpoint(model: string, ollamaModels: string[]): { endpoint: string; apiKey?: string } {
+  if (ollamaModels.includes(model)) {
+    return { endpoint: `${OLLAMA_BASE_URL}/v1/chat/completions` };
+  }
+  if (!GROQ_API_KEY) throw new Error('VITE_GROQ_API_KEY is not set. Add it to the root .env file.');
+  return { endpoint: 'https://api.groq.com/openai/v1/chat/completions', apiKey: GROQ_API_KEY };
+}
+
+// ── Store ────────────────────────────────────────────────────────────────────
 export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
       sessions: [],
       currentSessionId: null,
       isThinking: false,
-      selectedModel: null,
-      availableModels: [],
+      selectedModel: GROQ_CHAT_MODEL,
+      availableModels: GROQ_MODELS,
+      ollamaModels: [],
       isOllamaConnected: null,
 
       createSession: () => {
         const state = get();
-        
-        // 1. If the current active session is already empty, just keep using it
-        const currentSession = state.sessions.find((s) => s.id === state.currentSessionId);
-        if (currentSession && currentSession.messages.length === 0) {
-          return currentSession.id;
+        const current = state.sessions.find((s) => s.id === state.currentSessionId);
+        if (current && current.messages.length === 0) return current.id;
+
+        const empty = state.sessions.find((s) => s.messages.length === 0);
+        if (empty) {
+          set({ currentSessionId: empty.id });
+          return empty.id;
         }
 
-        // 2. If there's any other empty session in the list, select it instead of creating a new one
-        const existingEmptySession = state.sessions.find((s) => s.messages.length === 0);
-        if (existingEmptySession) {
-          set({ currentSessionId: existingEmptySession.id });
-          return existingEmptySession.id;
-        }
-
-        // 3. Otherwise, create a new session
-        const id = typeof crypto !== 'undefined' && crypto.randomUUID 
-          ? crypto.randomUUID() 
-          : Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-        const newSession: ChatSession = {
-          id,
-          title: 'New Chat',
-          messages: [],
-          createdAt: Date.now(),
-        };
-        set((state) => ({
-          sessions: [newSession, ...state.sessions],
-          currentSessionId: id,
-        }));
+        const id =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+        const newSession: ChatSession = { id, title: 'New Chat', messages: [], createdAt: Date.now() };
+        set((s) => ({ sessions: [newSession, ...s.sessions], currentSessionId: id }));
         return id;
       },
 
-      deleteSession: (id) => {
+      deleteSession: (id: string) =>
         set((state) => {
           const filtered = state.sessions.filter((s) => s.id !== id);
-          let nextActiveId = state.currentSessionId;
-          if (state.currentSessionId === id) {
-            nextActiveId = filtered.length > 0 ? filtered[0].id : null;
-          }
-          return {
-            sessions: filtered,
-            currentSessionId: nextActiveId,
-          };
-        });
-      },
+          const nextId =
+            state.currentSessionId === id
+              ? filtered.length > 0 ? filtered[0].id : null
+              : state.currentSessionId;
+          return { sessions: filtered, currentSessionId: nextId };
+        }),
 
-      selectSession: (id) => {
-        set({ currentSessionId: id });
-      },
+      selectSession: (id: string) => set({ currentSessionId: id }),
 
-      togglePinSession: (id) => {
+      togglePinSession: (id: string) =>
         set((state) => ({
-          sessions: state.sessions.map((s) =>
-            s.id === id ? { ...s, pinned: !s.pinned } : s
-          ),
-        }));
-      },
+          sessions: state.sessions.map((s) => (s.id === id ? { ...s, pinned: !s.pinned } : s)),
+        })),
 
-      renameSession: (id, title) => {
-        set((state) => ({
-          sessions: state.sessions.map((s) =>
-            s.id === id ? { ...s, title } : s
-          ),
-        }));
-      },
+      setSelectedModel: (model: string) => set({ selectedModel: model }),
 
-      setSelectedModel: (model) => {
-        set({ selectedModel: model });
-      },
+      setIsThinking: (active: boolean) => set({ isThinking: active }),
+
+      addAssistantMessage: (sessionId: string, text: string) =>
+        set((s) => ({
+          sessions: s.sessions.map((sess) =>
+            sess.id === sessionId
+              ? { ...sess, messages: [...sess.messages, { role: 'assistant' as const, content: text }] }
+              : sess
+          ),
+        })),
 
       fetchModels: async () => {
-        try {
-          const response = await safeFetch('http://localhost:11434/api/tags');
-          if (!response.ok) throw new Error('Failed to fetch models');
-          const data = await response.json();
-          const models = data.models.map((m: any) => m.name);
-          
-          set({ 
-            availableModels: models, 
-            isOllamaConnected: true 
-          });
+        let ollamaModels: string[] = [];
+        let isOllamaConnected = false;
 
-          // Set default selected model if not set or not in list anymore
-          const state = get();
-          if (models.length > 0) {
-            if (!state.selectedModel || !models.includes(state.selectedModel)) {
-              set({ selectedModel: models[0] });
-            }
+        try {
+          const res = await fetch(`${OLLAMA_BASE_URL}/api/tags`, { signal: AbortSignal.timeout(3000) });
+          if (res.ok) {
+            const data = await res.json() as { models: { name: string }[] };
+            ollamaModels = (data.models ?? []).map((m) => m.name);
+            isOllamaConnected = true;
           }
-        } catch (error) {
-          console.error('Ollama connection failed:', error);
-          set({ 
-            availableModels: [], 
-            isOllamaConnected: false 
-          });
+        } catch {
+          // Ollama not running — silently fall through
+        }
+
+        const allModels = [...GROQ_MODELS, ...ollamaModels];
+        set({ ollamaModels, availableModels: allModels, isOllamaConnected });
+
+        const state = get();
+        if (!state.selectedModel || !allModels.includes(state.selectedModel)) {
+          set({ selectedModel: GROQ_CHAT_MODEL });
         }
       },
 
-      sendMessage: async (content) => {
+      sendMessage: async (content, isAgentMode = false) => {
         const state = get();
-        let activeId = state.currentSessionId;
+        let activeId = state.currentSessionId ?? state.createSession();
 
-        // If there's no active session, create one first
-        if (!activeId) {
-          activeId = state.createSession();
-        }
-
-        // Add user message to active session and set thinking
         set((s) => ({
           isThinking: true,
           sessions: s.sessions.map((sess) => {
-            if (sess.id === activeId) {
-              const updatedMessages = [...sess.messages, { role: 'user' as const, content }];
-              // If title was still 'New Chat', use the first 30 chars of first message as title
-              const title = sess.title === 'New Chat' 
-                ? (content.length > 30 ? content.slice(0, 30) + '...' : content) 
-                : sess.title;
-              return {
-                ...sess,
-                title,
-                messages: updatedMessages,
-              };
-            }
-            return sess;
+            if (sess.id !== activeId) return sess;
+            const msgs = [...sess.messages, { role: 'user' as const, content }];
+            const title = sess.title === 'New Chat'
+              ? (content.length > 30 ? content.slice(0, 30) + '...' : content)
+              : sess.title;
+            return { ...sess, title, messages: msgs };
           }),
         }));
 
-        try {
-          const selectedModel = state.selectedModel || 'qwen2.5vl:3b';
-          
-          // Get the entire history for the current session
-          const currentSession = get().sessions.find((s) => s.id === activeId);
-          const historyMessages = currentSession ? currentSession.messages : [];
-
-          const response = await safeFetch('http://localhost:11434/api/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: selectedModel,
-              messages: historyMessages,
-              stream: true,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const reader = response.body?.getReader();
-          if (!reader) {
-            throw new Error('Readable stream not supported');
-          }
-
-          const decoder = new TextDecoder();
-          
-          // Add empty assistant message that we will stream into
-          set((s) => ({
-            isThinking: false, // Turn off thinking once stream starts
-            sessions: s.sessions.map((sess) => {
-              if (sess.id === activeId) {
-                return {
+        if (isAgentMode) {
+          const { useAgentBridge } = await import('./useAgentBridge');
+          const sent = useAgentBridge.getState().sendTask(content, activeId);
+          if (!sent) {
+            set((s) => ({
+              isThinking: false,
+              sessions: s.sessions.map((sess) =>
+                sess.id !== activeId ? sess : {
                   ...sess,
-                  messages: [...sess.messages, { role: 'assistant' as const, content: '' }],
-                };
-              }
-              return sess;
-            }),
-          }));
-
-          let partialLine = '';
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = (partialLine + chunk).split('\n');
-            partialLine = lines.pop() || '';
-
-            for (const line of lines) {
-              if (line.trim() === '') continue;
-              try {
-                const parsed = JSON.parse(line);
-                const token = parsed.message?.content || '';
-                
-                if (token) {
-                  set((s) => ({
-                    sessions: s.sessions.map((sess) => {
-                      if (sess.id === activeId) {
-                        const lastMsgIdx = sess.messages.length - 1;
-                        const updated = [...sess.messages];
-                        if (lastMsgIdx >= 0 && updated[lastMsgIdx].role === 'assistant') {
-                          updated[lastMsgIdx] = {
-                            ...updated[lastMsgIdx],
-                            content: updated[lastMsgIdx].content + token,
-                          };
-                        }
-                        return {
-                          ...sess,
-                          messages: updated,
-                        };
-                      }
-                      return sess;
-                    }),
-                  }));
+                  messages: [...sess.messages, {
+                    role: 'assistant' as const,
+                    content: 'Error: Cannot communicate with the desktop agent backend. Please ensure the agent backend is running.',
+                  }],
                 }
-              } catch (e) {
-                console.error('Failed to parse streaming JSON line:', e);
-              }
-            }
+              ),
+            }));
           }
-        } catch (error: any) {
-          console.error('Error calling Ollama:', error);
+          return;
+        }
+
+        const model = get().selectedModel || GROQ_CHAT_MODEL;
+        const history = get().sessions.find((s) => s.id === activeId)?.messages ?? [];
+        const { endpoint, apiKey } = resolveEndpoint(model, get().ollamaModels);
+
+        set((s) => ({
+          isThinking: false,
+          sessions: s.sessions.map((sess) =>
+            sess.id === activeId
+              ? { ...sess, messages: [...sess.messages, { role: 'assistant' as const, content: '' }] }
+              : sess
+          ),
+        }));
+
+        try {
+          await streamChatResponse(endpoint, model, history, (token: string) => {
+            set((s) => ({
+              sessions: s.sessions.map((sess) => {
+                if (sess.id !== activeId) return sess;
+                const msgs = [...sess.messages];
+                const last = msgs[msgs.length - 1];
+                if (last?.role === 'assistant') msgs[msgs.length - 1] = { ...last, content: last.content + token };
+                return { ...sess, messages: msgs };
+              }),
+            }));
+          }, apiKey);
+        } catch (error: unknown) {
+          const errorText = `Chat error: ${error instanceof Error ? error.message : String(error)}`;
           set((s) => ({
             isThinking: false,
             sessions: s.sessions.map((sess) => {
-              if (sess.id === activeId) {
-                const messages = sess.messages;
-                const lastMsg = messages[messages.length - 1];
-                const errorMessage = `Could not connect to Ollama. Make sure Ollama is running locally at http://localhost:11434 and the model "${state.selectedModel || 'qwen2.5vl:3b'}" is downloaded.\n\nError: ${error.message}`;
-                
-                if (lastMsg && lastMsg.role === 'assistant' && lastMsg.content === '') {
-                  const updated = [...messages];
-                  updated[updated.length - 1] = {
-                    role: 'assistant',
-                    content: errorMessage,
-                  };
-                  return { ...sess, messages: updated };
-                } else {
-                  return {
-                    ...sess,
-                    messages: [...messages, { role: 'assistant' as const, content: errorMessage }],
-                  };
-                }
+              if (sess.id !== activeId) return sess;
+              const msgs = [...sess.messages];
+              const last = msgs[msgs.length - 1];
+              if (last?.role === 'assistant' && last.content === '') {
+                msgs[msgs.length - 1] = { ...last, content: errorText };
+              } else {
+                msgs.push({ role: 'assistant' as const, content: errorText });
               }
-              return sess;
+              return { ...sess, messages: msgs };
             }),
           }));
         }
@@ -306,134 +278,55 @@ export const useChatStore = create<ChatState>()(
         const activeId = state.currentSessionId;
         if (!activeId) return;
 
-        // 1. Update the session: edit the message content and truncate any subsequent messages
         set((s) => ({
           isThinking: true,
           sessions: s.sessions.map((sess) => {
-            if (sess.id === activeId) {
-              const truncatedMessages = sess.messages.slice(0, messageIndex + 1);
-              truncatedMessages[messageIndex] = {
-                ...truncatedMessages[messageIndex],
-                content: newContent,
-              };
-              return {
-                ...sess,
-                messages: truncatedMessages,
-              };
-            }
-            return sess;
+            if (sess.id !== activeId) return sess;
+            const truncated = sess.messages.slice(0, messageIndex + 1);
+            truncated[messageIndex] = { ...truncated[messageIndex], content: newContent };
+            return { ...sess, messages: truncated };
           }),
         }));
 
-        // 2. Trigger Ollama stream on the updated history
+        const model = get().selectedModel || GROQ_CHAT_MODEL;
+        const history = get().sessions.find((s) => s.id === activeId)?.messages ?? [];
+        const { endpoint, apiKey } = resolveEndpoint(model, get().ollamaModels);
+
+        set((s) => ({
+          isThinking: false,
+          sessions: s.sessions.map((sess) =>
+            sess.id === activeId
+              ? { ...sess, messages: [...sess.messages, { role: 'assistant' as const, content: '' }] }
+              : sess
+          ),
+        }));
+
         try {
-          const selectedModel = get().selectedModel || 'qwen2.5vl:3b';
-          const currentSession = get().sessions.find((s) => s.id === activeId);
-          const historyMessages = currentSession ? currentSession.messages : [];
-
-          const response = await safeFetch('http://localhost:11434/api/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: selectedModel,
-              messages: historyMessages,
-              stream: true,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const reader = response.body?.getReader();
-          if (!reader) {
-            throw new Error('Readable stream not supported');
-          }
-
-          const decoder = new TextDecoder();
-          
-          // Add empty assistant message that we will stream into
-          set((s) => ({
-            isThinking: false, // Turn off thinking once stream starts
-            sessions: s.sessions.map((sess) => {
-              if (sess.id === activeId) {
-                return {
-                  ...sess,
-                  messages: [...sess.messages, { role: 'assistant' as const, content: '' }],
-                };
-              }
-              return sess;
-            }),
-          }));
-
-          let partialLine = '';
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = (partialLine + chunk).split('\n');
-            partialLine = lines.pop() || '';
-
-            for (const line of lines) {
-              if (line.trim() === '') continue;
-              try {
-                const parsed = JSON.parse(line);
-                const token = parsed.message?.content || '';
-                
-                if (token) {
-                  set((s) => ({
-                    sessions: s.sessions.map((sess) => {
-                      if (sess.id === activeId) {
-                        const lastMsgIdx = sess.messages.length - 1;
-                        const updated = [...sess.messages];
-                        if (lastMsgIdx >= 0 && updated[lastMsgIdx].role === 'assistant') {
-                          updated[lastMsgIdx] = {
-                            ...updated[lastMsgIdx],
-                            content: updated[lastMsgIdx].content + token,
-                          };
-                        }
-                        return {
-                          ...sess,
-                          messages: updated,
-                        };
-                      }
-                      return sess;
-                    }),
-                  }));
-                }
-              } catch (e) {
-                console.error('Failed to parse streaming JSON line:', e);
-              }
-            }
-          }
-        } catch (error: any) {
-          console.error('Error calling Ollama:', error);
+          await streamChatResponse(endpoint, model, history, (token: string) => {
+            set((s) => ({
+              sessions: s.sessions.map((sess) => {
+                if (sess.id !== activeId) return sess;
+                const msgs = [...sess.messages];
+                const last = msgs[msgs.length - 1];
+                if (last?.role === 'assistant') msgs[msgs.length - 1] = { ...last, content: last.content + token };
+                return { ...sess, messages: msgs };
+              }),
+            }));
+          }, apiKey);
+        } catch (error: unknown) {
+          const errorText = `Chat error: ${error instanceof Error ? error.message : String(error)}`;
           set((s) => ({
             isThinking: false,
             sessions: s.sessions.map((sess) => {
-              if (sess.id === activeId) {
-                const messages = sess.messages;
-                const lastMsg = messages[messages.length - 1];
-                const errorMessage = `Could not connect to Ollama. Make sure Ollama is running locally at http://localhost:11434 and the model "${get().selectedModel || 'qwen2.5vl:3b'}" is downloaded.\n\nError: ${error.message}`;
-                
-                if (lastMsg && lastMsg.role === 'assistant' && lastMsg.content === '') {
-                  const updated = [...messages];
-                  updated[updated.length - 1] = {
-                    role: 'assistant',
-                    content: errorMessage,
-                  };
-                  return { ...sess, messages: updated };
-                } else {
-                  return {
-                    ...sess,
-                    messages: [...messages, { role: 'assistant' as const, content: errorMessage }],
-                  };
-                }
+              if (sess.id !== activeId) return sess;
+              const msgs = [...sess.messages];
+              const last = msgs[msgs.length - 1];
+              if (last?.role === 'assistant' && last.content === '') {
+                msgs[msgs.length - 1] = { ...last, content: errorText };
+              } else {
+                msgs.push({ role: 'assistant' as const, content: errorText });
               }
-              return sess;
+              return { ...sess, messages: msgs };
             }),
           }));
         }

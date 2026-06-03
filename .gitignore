@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+Agent-S/
+AI_COWORKER/
+
+# Environments / Secrets
+.env
+.env.*
+agent_backend/.env

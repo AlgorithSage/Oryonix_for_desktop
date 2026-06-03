@@ -76,10 +76,29 @@ class ShowUIAgent:
     """
 
     def __init__(self, model_path: str = "showlab/ShowUI-2B") -> None:
+        import torch
+        import transformers
+        import qwen_vl_utils  # pre-flight import check — raises if missing
+
         self.model_path = model_path
         self._model = None
         self._processor = None
         self._device: str = "cpu"
+
+    def unload(self) -> None:
+        """Release model weights from VRAM so Ollama can use the GPU."""
+        if self._model is not None:
+            try:
+                import torch
+                del self._model
+                del self._processor
+                torch.cuda.empty_cache()
+            except Exception:
+                pass
+            finally:
+                self._model = None
+                self._processor = None
+        logger.info("[ShowUI] Model unloaded from VRAM.")
 
     # ── Public async API ─────────────────────────────────────────────────────
 

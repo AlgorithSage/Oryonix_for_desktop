@@ -1,10 +1,11 @@
 import { useState, KeyboardEvent, useRef, useCallback, useEffect } from 'react';
-import { Mic } from 'lucide-react';
+import { Mic, Bot, MessageSquare } from 'lucide-react';
 import { useChatStore } from '../../stores/useChatStore';
 
 export default function ChatInput() {
   const [input, setInput] = useState('');
   const [isGrown, setIsGrown] = useState(false);
+  const [isAgentMode, setIsAgentMode] = useState(true); // default to Agent Mode because Oryonix is a CUA app!
   const { sendMessage, isThinking } = useChatStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Lock to prevent shrink-back from triggering on the same render cycle as a grow
@@ -57,7 +58,7 @@ export default function ChatInput() {
 
   const handleSend = () => {
     if (input.trim() && !isThinking) {
-      sendMessage(input.trim());
+      sendMessage(input.trim(), isAgentMode);
       setInput('');
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
@@ -74,6 +75,29 @@ export default function ChatInput() {
     }
   };
 
+  const modeToggle = (
+    <button
+      onClick={() => setIsAgentMode(!isAgentMode)}
+      className={`h-8 px-3 rounded-full flex items-center gap-1.5 transition-all text-xs font-semibold select-none cursor-pointer border active:scale-95 shrink-0
+        ${isAgentMode
+          ? 'bg-purple-950/20 border-purple-500/30 text-purple-300 hover:bg-purple-950/40 hover:border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.15)]'
+          : 'bg-zinc-800/20 border-zinc-700/30 text-zinc-400 hover:bg-zinc-800/40 hover:border-zinc-700/50'}`}
+      title="Toggle between CUA Desktop Agent and General Chat Assistant"
+    >
+      {isAgentMode ? (
+        <>
+          <Bot size={13} className="stroke-[2.2] text-[#c084fc]" />
+          <span>Agent Mode</span>
+        </>
+      ) : (
+        <>
+          <MessageSquare size={13} className="stroke-[2.2] text-zinc-450" />
+          <span>Chat Mode</span>
+        </>
+      )}
+    </button>
+  );
+
   /* ── Pill shape: single-row layout ── */
   if (!isGrown) {
     return (
@@ -84,14 +108,15 @@ export default function ChatInput() {
             value={input}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            placeholder="Ask anything..."
+            placeholder={isAgentMode ? "Ask the agent to control your computer..." : "Ask anything..."}
             rows={1}
             className="flex-1 bg-transparent pl-1 pr-3 outline-none placeholder-zinc-400 resize-none overflow-hidden"
             style={{ height: '24px', lineHeight: '24px', padding: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: '17px', fontWeight: 400, color: 'var(--text-main)' }}
             disabled={isThinking}
           />
           {/* Inline actions */}
-          <div className="flex items-center gap-1 shrink-0 ml-auto pl-2">
+          <div className="flex items-center gap-1.5 shrink-0 ml-auto pl-2">
+            {modeToggle}
             <button className="w-9 h-9 !p-0 flex items-center justify-center text-zinc-400 hover:text-[var(--text-main)] cursor-pointer transition-colors rounded-full hover:!bg-[var(--bg-hover)] !bg-transparent !border-none !shadow-none" title="Voice Input">
               <Mic size={18} className="stroke-[1.8]" />
             </button>
@@ -126,7 +151,7 @@ export default function ChatInput() {
           value={input}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="Ask anything..."
+          placeholder={isAgentMode ? "Ask the agent to control your computer..." : "Ask anything..."}
           rows={2}
           className="w-full bg-transparent px-1 pt-0.5 pb-1.5 outline-none placeholder-zinc-400 resize-none max-h-40 min-h-[4rem] overflow-y-auto animate-fade-in"
           style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '17px', lineHeight: '24px', fontWeight: 400, color: 'var(--text-main)' }}
@@ -134,7 +159,8 @@ export default function ChatInput() {
         />
 
         {/* Bottom actions row */}
-        <div className="flex items-center justify-end px-0.5 animate-fade-in">
+        <div className="flex items-center justify-between px-0.5 animate-fade-in">
+          {modeToggle}
           <div className="flex items-center gap-1">
             <button className="w-9 h-9 !p-0 flex items-center justify-center text-zinc-400 hover:text-[var(--text-main)] cursor-pointer transition-colors rounded-full hover:!bg-[var(--bg-hover)] !bg-transparent !border-none !shadow-none" title="Voice Input">
               <Mic size={18} className="stroke-[1.8]" />

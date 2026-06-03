@@ -4,6 +4,7 @@ import ChatWindow from './components/chat/ChatWindow';
 import SearchModal from './components/chat/SearchModal';
 import { useThemeStore } from './stores/useThemeStore';
 import { useAgentBridge } from './stores/useAgentBridge';
+import ControlBar from './components/controls/ControlBar';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -70,6 +71,7 @@ function App() {
         {/* Chat Feed & Top Area */}
         <div className="flex-1 overflow-hidden flex flex-col bg-[var(--bg-main)] transition-colors duration-150">
           <ChatWindow sidebarOpen={sidebarOpen} setSidebarOpen={handleSetSidebarOpen} />
+          <ControlBar />
         </div>
       </div>
 

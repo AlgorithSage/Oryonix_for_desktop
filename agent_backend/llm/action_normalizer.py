@@ -37,13 +37,13 @@ class ActionNormalizer:
 
     def normalize(self, raw_output: str, model_family: str) -> Action:
         """
-        model_family: "claude_gpt" | "fara" | "opencua" | "showui"
+        model_family: "claude_gpt" | "fara" | "opencua" | "showui" | "groq"
         Raises ValueError if the output cannot be parsed.
         """
         raw_output = raw_output.strip()
         if model_family == "claude_gpt":
             action = self._parse_claude_gpt(raw_output)
-        elif model_family in ("fara", "opencua"):
+        elif model_family in ("fara", "opencua", "groq"):
             action = self._parse_local_json(raw_output)
         elif model_family == "showui":
             action = self._parse_showui(raw_output)
