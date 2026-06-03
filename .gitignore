@@ -24,6 +24,9 @@ dist-ssr
 *.sw?
 Agent-S/
 AI_COWORKER/
+ShowUI/
+UFO/
+
 
 # Environments / Secrets
 .env
