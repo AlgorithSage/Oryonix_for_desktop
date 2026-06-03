@@ -4,7 +4,7 @@ import { useThemeStore } from '../../stores/useThemeStore';
 import { useAgentBridge } from '../../stores/useAgentBridge';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
-import { PanelLeft, Sun, Moon, ChevronDown, SquarePen } from 'lucide-react';
+import { PanelLeft, Sun, Moon, ChevronDown, SquarePen, Server, Cloud, Check } from 'lucide-react';
 import Lenis from 'lenis';
 import GridLoader from '../smoothui/grid-loader';
 
@@ -20,6 +20,7 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
     isThinking,
     selectedModel,
     availableModels,
+    ollamaModels,
     isOllamaConnected,
     fetchModels,
     setSelectedModel,
@@ -186,6 +187,11 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
                     onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
                     className="flex items-center gap-1.5 text-[var(--text-input-active)] font-semibold cursor-pointer outline-none border-none py-0.5 px-1.5 -mx-1.5 rounded-md hover:bg-[var(--bg-hover)] transition-colors select-none font-sans"
                   >
+                    {selectedModel && ollamaModels.includes(selectedModel) ? (
+                      <Server size={12} className="text-emerald-500 shrink-0" />
+                    ) : (
+                      <Cloud size={12} className="text-sky-500 shrink-0" />
+                    )}
                     <span className="truncate max-w-[150px]">{selectedModel || 'Select Model'}</span>
                     <ChevronDown 
                       size={11} 
@@ -196,26 +202,78 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
                   </button>
 
                   {modelDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-[var(--bg-popover)] border border-[var(--border-popover)] rounded-xl shadow-xl py-1 z-50 overflow-hidden animate-fade-in max-h-[280px] overflow-y-auto">
-                      {availableModels.map((model) => (
-                        <button
-                          key={model}
-                          onClick={() => {
-                            setSelectedModel(model);
-                            setModelDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-3.5 py-2.5 text-xs font-sans transition-all duration-150 flex items-center justify-between hover:bg-[var(--bg-popover-item-hover)] group ${
-                            selectedModel === model
-                              ? 'text-[var(--text-popover-item-hover)] font-semibold bg-[var(--bg-popover-item-hover)]'
-                              : 'text-[var(--text-popover-item)] hover:text-[var(--text-popover-item-hover)]'
-                          }`}
-                        >
-                          <span className="truncate pr-4 group-hover:translate-x-0.5 transition-transform duration-150">{model}</span>
-                          {selectedModel === model && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shrink-0" />
-                          )}
-                        </button>
-                      ))}
+                    <div className="absolute right-0 top-full mt-2 w-72 bg-[var(--bg-popover)] border border-[var(--border-popover)] rounded-xl shadow-xl py-1.5 z-50 overflow-hidden animate-fade-in max-h-[350px] overflow-y-auto">
+                      {/* Cloud Models Section */}
+                      {availableModels.filter(m => !ollamaModels.includes(m)).length > 0 && (
+                        <div className="px-1 pb-1">
+                          <div className="text-[9px] font-bold text-zinc-500 tracking-wider uppercase px-3 py-1.5 select-none">
+                            Cloud Models
+                          </div>
+                          {availableModels
+                            .filter(m => !ollamaModels.includes(m))
+                            .map((model) => (
+                              <button
+                                key={model}
+                                onClick={() => {
+                                  setSelectedModel(model);
+                                  setModelDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs font-sans transition-all duration-150 flex items-center justify-between rounded-lg hover:bg-[var(--bg-popover-item-hover)] group ${
+                                  selectedModel === model
+                                    ? 'text-[var(--text-popover-item-hover)] font-semibold bg-[var(--bg-popover-item-hover)]'
+                                    : 'text-[var(--text-popover-item)] hover:text-[var(--text-popover-item-hover)]'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <Cloud size={13} className="text-sky-500 shrink-0" />
+                                  <span className="truncate">{model}</span>
+                                </div>
+                                {selectedModel === model && (
+                                  <Check size={13} className="text-emerald-500 shrink-0" />
+                                )}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+
+                      {/* Divider if both sections exist */}
+                      {availableModels.filter(m => !ollamaModels.includes(m)).length > 0 && 
+                       availableModels.filter(m => ollamaModels.includes(m)).length > 0 && (
+                        <div className="h-[1px] bg-[var(--border-color)] my-1 mx-2" />
+                      )}
+
+                      {/* Local Models Section */}
+                      {availableModels.filter(m => ollamaModels.includes(m)).length > 0 && (
+                        <div className="px-1 pt-1">
+                          <div className="text-[9px] font-bold text-zinc-500 tracking-wider uppercase px-3 py-1.5 select-none">
+                            Local Models (Ollama)
+                          </div>
+                          {availableModels
+                            .filter(m => ollamaModels.includes(m))
+                            .map((model) => (
+                              <button
+                                key={model}
+                                onClick={() => {
+                                  setSelectedModel(model);
+                                  setModelDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs font-sans transition-all duration-150 flex items-center justify-between rounded-lg hover:bg-[var(--bg-popover-item-hover)] group ${
+                                  selectedModel === model
+                                    ? 'text-[var(--text-popover-item-hover)] font-semibold bg-[var(--bg-popover-item-hover)]'
+                                    : 'text-[var(--text-popover-item)] hover:text-[var(--text-popover-item-hover)]'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <Server size={13} className="text-emerald-500 shrink-0" />
+                                  <span className="truncate">{model}</span>
+                                </div>
+                                {selectedModel === model && (
+                                  <Check size={13} className="text-emerald-500 shrink-0" />
+                                )}
+                              </button>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
