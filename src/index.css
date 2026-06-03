@@ -23,10 +23,20 @@ h4,
 h5,
 h6,
 .font-heading {
-  font-family: 'Garet Bold', 'tfp-garet-7920-garet-bold', 'Garet', 'Google Sans Flex', -apple-system, sans-serif !important;
-  font-weight: 400 !important;
-  font-size: 29px !important;
-  line-height: 44px !important;
+  font-family: 'Garet Bold', 'Garet', 'Google Sans Flex', -apple-system, sans-serif !important;
+  font-weight: bold !important;
+}
+
+body,
+input,
+textarea,
+button,
+select,
+p,
+span,
+div,
+a {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 :root {
@@ -34,12 +44,12 @@ h6,
   color-scheme: dark light;
 
   /* Dark Mode Default Theme Variables */
-  --bg-main: #181818;
-  --bg-sidebar: #131313;
-  --bg-control: #181818;
+  --bg-main: #141414;
+  --bg-sidebar: #181818;
+  --bg-control: #141414;
   --text-main: #f4f4f5;
   --text-muted: #71717a;
-  --border-color: transparent;
+  --border-color: #333336;
   --bg-hover: #1C1C1F;
   --bg-input: #27272A;
   --text-input-active: #ffffff;
@@ -78,12 +88,12 @@ h6,
 :root.light {
   color-scheme: light;
   /* Light Mode Theme Variables (Solarized Light Palette) */
-  --bg-main: #fdf6e3;
-  --bg-sidebar: #e6dfcb;
-  --bg-control: #fdf6e3;
+  --bg-main: #e6dfcb;
+  --bg-sidebar: #fdf6e3;
+  --bg-control: #e6dfcb;
   --text-main: #586e75;
   --text-muted: #839496;
-  --border-color: transparent;
+  --border-color: #ded8c4;
   --bg-hover: #eee8d5;
   --bg-input: #fdf6e3;
   --text-input-active: #073642;
@@ -138,13 +148,13 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
+  background: #42444a;
   border-radius: 9999px;
   cursor: pointer;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
+  background: #505259;
   cursor: pointer;
 }
 

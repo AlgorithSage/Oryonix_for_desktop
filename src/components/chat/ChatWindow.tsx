@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useChatStore } from '../../stores/useChatStore';
 import { useThemeStore } from '../../stores/useThemeStore';
 import { useAgentBridge } from '../../stores/useAgentBridge';
@@ -30,6 +30,8 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
   const messages = currentSession ? currentSession.messages : [];
@@ -121,10 +123,21 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [createSession]);
 
+  // Close model dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setModelDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div className="flex-1 flex flex-col h-full bg-[var(--bg-main)] overflow-hidden min-w-0 select-none transition-colors duration-150">
       {/* Top Model Bar */}
-      <div className="h-14 px-6 flex items-center justify-between shrink-0 border-b border-[var(--border-color)]">
+      <div className="h-14 px-6 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           {/* Re-open Sidebar Icon */}
           {!sidebarOpen && (
@@ -161,26 +174,50 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen }: ChatWindowPr
               )}
             </span>
             
-            <span className="font-medium text-zinc-400 font-sans">
+            <span className="font-medium text-zinc-500 dark:text-zinc-400 font-sans">
               {isOllamaConnected ? 'Ollama Online' : 'Ollama Offline'}
             </span>
 
             {availableModels.length > 0 && (
               <>
                 <div className="h-3 w-[1px] bg-[var(--border-color)] mx-1" />
-                <div className="relative flex items-center text-zinc-200 font-semibold cursor-pointer gap-1">
-                  <select
-                    value={selectedModel || ''}
-                    onChange={(e) => setSelectedModel(e.target.value)}
-                    className="bg-transparent text-zinc-200 font-semibold cursor-pointer outline-none border-none py-0.5 pr-4 appearance-none font-sans"
+                <div className="relative flex items-center font-sans" ref={dropdownRef}>
+                  <button
+                    onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                    className="flex items-center gap-1.5 text-[var(--text-input-active)] font-semibold cursor-pointer outline-none border-none py-0.5 px-1.5 -mx-1.5 rounded-md hover:bg-[var(--bg-hover)] transition-colors select-none font-sans"
                   >
-                    {availableModels.map((model) => (
-                      <option key={model} value={model} className="bg-[var(--bg-sidebar)] text-[var(--text-main)] py-1 font-sans">
-                        {model}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={11} className="absolute right-0 pointer-events-none text-zinc-500" />
+                    <span className="truncate max-w-[150px]">{selectedModel || 'Select Model'}</span>
+                    <ChevronDown 
+                      size={11} 
+                      className={`text-zinc-500 transition-transform duration-200 shrink-0 ${
+                        modelDropdownOpen ? 'rotate-180' : ''
+                      }`} 
+                    />
+                  </button>
+
+                  {modelDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-[var(--bg-popover)] border border-[var(--border-popover)] rounded-xl shadow-xl py-1 z-50 overflow-hidden animate-fade-in max-h-[280px] overflow-y-auto">
+                      {availableModels.map((model) => (
+                        <button
+                          key={model}
+                          onClick={() => {
+                            setSelectedModel(model);
+                            setModelDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3.5 py-2.5 text-xs font-sans transition-all duration-150 flex items-center justify-between hover:bg-[var(--bg-popover-item-hover)] group ${
+                            selectedModel === model
+                              ? 'text-[var(--text-popover-item-hover)] font-semibold bg-[var(--bg-popover-item-hover)]'
+                              : 'text-[var(--text-popover-item)] hover:text-[var(--text-popover-item-hover)]'
+                          }`}
+                        >
+                          <span className="truncate pr-4 group-hover:translate-x-0.5 transition-transform duration-150">{model}</span>
+                          {selectedModel === model && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shrink-0" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </>
             )}

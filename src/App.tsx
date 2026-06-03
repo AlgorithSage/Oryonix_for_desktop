@@ -67,7 +67,7 @@ function App() {
       />
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col min-w-0 bg-[var(--bg-main)] my-2 mr-2 rounded-2xl overflow-hidden transition-all duration-150 ${!sidebarOpen ? 'ml-2' : 'ml-0'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 bg-[var(--bg-main)] my-2 mr-2 rounded-2xl border border-[var(--border-color)] shadow-xl overflow-hidden transition-all duration-150 ${!sidebarOpen ? 'ml-2' : 'ml-0'}`}>
         {/* Chat Feed & Top Area */}
         <div className="flex-1 overflow-hidden flex flex-col bg-[var(--bg-main)] transition-colors duration-150">
           <ChatWindow sidebarOpen={sidebarOpen} setSidebarOpen={handleSetSidebarOpen} />

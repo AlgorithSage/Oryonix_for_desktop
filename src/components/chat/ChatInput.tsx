@@ -101,8 +101,8 @@ export default function ChatInput() {
   /* ── Pill shape: single-row layout ── */
   if (!isGrown) {
     return (
-      <div className="w-full select-none font-sans px-4 pt-0 pb-2 shrink-0">
-        <div className="max-w-4xl mx-auto bg-[var(--bg-input)] shadow-[var(--input-shadow)] flex flex-row items-center rounded-[28px] py-2.5 pl-5 pr-2 transition-all duration-300 ease-in-out">
+      <div className="w-full select-none font-sans px-2 pt-0 pb-2 shrink-0">
+        <div className="max-w-4xl mx-auto bg-[var(--bg-input)] border border-[var(--border-color)] shadow-lg flex flex-row items-center rounded-full py-3 pl-6 pr-3 transition-all duration-300 ease-in-out">
           <textarea
             ref={textareaRef}
             value={input}
@@ -110,14 +110,14 @@ export default function ChatInput() {
             onKeyDown={handleKeyDown}
             placeholder={isAgentMode ? "Ask the agent to control your computer..." : "Ask anything..."}
             rows={1}
-            className="flex-1 bg-transparent pl-1 pr-3 outline-none placeholder-zinc-400 resize-none overflow-hidden"
-            style={{ height: '24px', lineHeight: '24px', padding: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: '17px', fontWeight: 400, color: 'var(--text-main)' }}
+            className="flex-1 bg-transparent pl-0.5 pr-2 outline-none placeholder-zinc-500 resize-none overflow-hidden"
+            style={{ height: '24px', lineHeight: '24px', padding: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', fontWeight: 400, color: 'var(--text-main)' }}
             disabled={isThinking}
           />
           {/* Inline actions */}
           <div className="flex items-center gap-1.5 shrink-0 ml-auto pl-2">
             {modeToggle}
-            <button className="w-9 h-9 !p-0 flex items-center justify-center text-zinc-400 hover:text-[var(--text-main)] cursor-pointer transition-colors rounded-full hover:!bg-[var(--bg-hover)] !bg-transparent !border-none !shadow-none" title="Voice Input">
+            <button className="w-9 h-9 !p-0 flex items-center justify-center text-zinc-500 hover:text-[var(--text-main)] cursor-pointer transition-colors rounded-full hover:!bg-[var(--bg-hover)] !bg-transparent !border-none !shadow-none" title="Voice Input">
               <Mic size={18} className="stroke-[1.8]" />
             </button>
             <button
@@ -144,7 +144,7 @@ export default function ChatInput() {
   /* ── Box shape: multi-row layout ── */
   return (
     <div className="w-full select-none font-sans px-4 pt-0 pb-2 shrink-0">
-      <div className="max-w-4xl mx-auto bg-[var(--bg-input)] shadow-[var(--input-shadow)] flex flex-col rounded-2xl p-3 gap-2 transition-all duration-300 ease-in-out">
+      <div className="max-w-4xl mx-auto bg-[var(--bg-input)] border border-[var(--border-color)] shadow-md flex flex-col rounded-2xl p-3 gap-2 transition-all duration-300 ease-in-out">
         {/* Textarea takes full width — no wrapper row, no gap */}
         <textarea
           ref={textareaRef}

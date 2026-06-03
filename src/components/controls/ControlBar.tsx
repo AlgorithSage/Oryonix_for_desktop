@@ -20,7 +20,7 @@ export default function ControlBar() {
   }, [isThinking]);
 
   return (
-    <div className="h-12 border-t border-[var(--border-color)] bg-[var(--bg-control)] px-6 flex items-center justify-between select-none shrink-0 font-mono text-[10px] transition-colors duration-150">
+    <div className="h-12 bg-[var(--bg-control)] px-6 flex items-center justify-between select-none shrink-0 font-mono text-[10px] transition-colors duration-150">
       {/* Left: Hardware Metrics */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5 text-zinc-500">

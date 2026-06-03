@@ -39,6 +39,7 @@ interface ChatState {
   deleteSession: (id: string) => void;
   selectSession: (id: string) => void;
   togglePinSession: (id: string) => void;
+  renameSession: (id: string, title: string) => void;
   sendMessage: (content: string, isAgentMode?: boolean) => Promise<void>;
   editMessage: (messageIndex: number, newContent: string) => Promise<void>;
   setSelectedModel: (model: string) => void;
@@ -154,6 +155,11 @@ export const useChatStore = create<ChatState>()(
       togglePinSession: (id: string) =>
         set((state) => ({
           sessions: state.sessions.map((s) => (s.id === id ? { ...s, pinned: !s.pinned } : s)),
+        })),
+
+      renameSession: (id: string, title: string) =>
+        set((state) => ({
+          sessions: state.sessions.map((s) => (s.id === id ? { ...s, title } : s)),
         })),
 
       setSelectedModel: (model: string) => set({ selectedModel: model }),

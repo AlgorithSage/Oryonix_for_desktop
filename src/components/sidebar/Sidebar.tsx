@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { SquarePen, Search, PanelLeftClose, ChevronsUpDown, Trash2, ChevronDown, Pin, PinOff, Pencil, X, Check, Settings, Blocks, Clock, HelpCircle, Compass, LogOut, ChevronRight } from 'lucide-react';
+import { SquarePen, Search, PanelLeftClose, Trash2, Pin, PinOff, Pencil, X, Check, Settings, Blocks, Clock, HelpCircle, Compass, LogOut, ChevronRight, ChevronDown } from 'lucide-react';
 import { useChatStore, ChatSession } from '../../stores/useChatStore';
 
 interface SidebarProps {
@@ -63,7 +63,7 @@ const SidebarChatItem = memo(function SidebarChatItem({
           selectSession(session.id);
         }
       }}
-      className={`group relative flex items-center justify-between gap-3 px-4 py-2 rounded-full cursor-pointer transition-colors duration-150 ease-out border font-sans select-none
+      className={`group relative flex items-center justify-between gap-3 px-3 py-1.5 rounded-xl cursor-pointer transition-colors duration-150 ease-out border font-sans select-none
         ${isActive
           ? 'bg-[var(--bg-hover)] border-[var(--border-color)] text-[var(--text-main)] font-medium shadow-sm'
           : 'bg-transparent border-transparent text-[var(--text-sidebar-item)] hover:text-[var(--text-main)] hover:bg-[var(--bg-hover)]'}`}
@@ -314,18 +314,15 @@ export default function Sidebar({ isOpen, setSidebarOpen, onSearchClick }: Sideb
         {/* Brand Header */}
         <div className="h-14 px-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex items-center">
-              <span className="font-bold text-sm bg-gradient-to-r from-[#F95F1C] to-[#FFC837] bg-clip-text text-transparent tracking-tight font-heading">Oryonix</span>
-              <span className="text-[8px] font-mono font-bold border border-[var(--border-color)] text-zinc-500 rounded px-1 py-0.5 ml-1.5 leading-none">
-                BETA
-              </span>
-            </div>
+            <span className="font-bold text-[22px] bg-gradient-to-r from-[#F95F1C] to-[#FFC837] bg-clip-text text-transparent tracking-tight font-heading">
+              Oryonix
+            </span>
           </div>
 
           {/* Collapse Sidebar Toggle Icon */}
           <button
             onClick={() => setSidebarOpen(false)}
-            className="text-zinc-500 hover:text-[var(--text-main)] transition-colors cursor-pointer p-1 rounded-full hover:bg-[var(--bg-hover)]"
+            className="text-zinc-500 hover:text-[var(--text-main)] transition-colors cursor-pointer p-1.5 rounded hover:bg-[var(--bg-hover)]"
             title="Collapse Sidebar"
           >
             <PanelLeftClose size={16} />
@@ -333,29 +330,29 @@ export default function Sidebar({ isOpen, setSidebarOpen, onSearchClick }: Sideb
         </div>
 
         {/* Dynamic Navigation & Session List */}
-        <div className="flex-1 pl-3 pr-0 pt-4 pb-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 px-3 py-4 flex flex-col min-h-0 overflow-hidden">
           {/* Navigation List */}
-          <div className="space-y-1 mb-4 shrink-0 pr-3">
+          <div className="space-y-1 mb-6 shrink-0">
             {/* New Chat Button */}
             <div
               onClick={() => {
                 createSession();
               }}
-              className={`flex items-center gap-2.5 px-4 py-2 rounded-full cursor-pointer transition-all border font-sans select-none
+              className={`flex items-center gap-3 px-3 py-1.5 rounded-xl cursor-pointer transition-all border font-sans select-none
                 ${isNewChatActive
                   ? 'bg-[var(--bg-hover)] border-[var(--border-color)] text-[var(--text-main)] font-semibold shadow-sm'
                   : 'bg-transparent border-transparent text-[var(--text-sidebar-item)] hover:text-[var(--text-main)] hover:bg-[var(--bg-hover)]'}`}
             >
-              <SquarePen size={15} className={isNewChatActive ? 'text-[#F56C13]' : 'text-[var(--text-sidebar-item)]'} />
+              <SquarePen size={18} className={isNewChatActive ? 'text-[#F56C13]' : 'text-[var(--text-sidebar-item)]'} />
               <span className="text-sm font-medium">New Chat</span>
             </div>
 
             {/* Search Chats Button */}
             <div
               onClick={onSearchClick}
-              className="flex items-center gap-2.5 px-4 py-2 rounded-full cursor-pointer transition-all border border-transparent text-[var(--text-sidebar-item)] hover:text-[var(--text-main)] hover:bg-[var(--bg-hover)] font-sans"
+              className="flex items-center gap-3 px-3 py-1.5 rounded-xl cursor-pointer transition-all border border-transparent text-[var(--text-sidebar-item)] hover:text-[var(--text-main)] hover:bg-[var(--bg-hover)] font-sans"
             >
-              <Search size={15} className="text-[var(--text-sidebar-item)]" />
+              <Search size={18} className="text-[var(--text-sidebar-item)]" />
               <span className="text-sm font-medium">Search Chats</span>
             </div>
           </div>
@@ -368,16 +365,17 @@ export default function Sidebar({ isOpen, setSidebarOpen, onSearchClick }: Sideb
               </div>
             ) : (
               <>
-                {/* Recent Chats Collapsible Header */}
-                <div
+                {/* Recent Chats Header - Collapsible */}
+                <div 
                   onClick={toggleExpand}
-                  className="flex items-center gap-1.5 px-3.5 py-2 text-[10px] font-sans font-bold text-[var(--text-sidebar-header)] uppercase tracking-widest select-none hover:text-[var(--text-main)] cursor-pointer group/sec transition-colors duration-150 shrink-0"
+                  className="flex items-center justify-between text-[11px] font-sans tracking-wider text-[var(--text-sidebar-header)] font-semibold px-4 mb-2 cursor-pointer hover:text-[var(--text-main)] select-none group/header transition-colors"
                 >
-                  <span>Recent Chats</span>
-                  <ChevronDown
-                    size={12}
-                    className={`text-[var(--text-sidebar-header)] group-hover/sec:text-[var(--text-main)] transition-transform duration-150 ease-out
-                      ${!isExpanded ? '-rotate-90' : ''}`}
+                  <span>RECENTS</span>
+                  <ChevronDown 
+                    size={12} 
+                    className={`text-[var(--text-sidebar-muted)] group-hover/header:text-[var(--text-main)] transition-transform duration-200 ${
+                      isExpanded ? '' : '-rotate-90'
+                    }`} 
                   />
                 </div>
 
@@ -525,39 +523,27 @@ export default function Sidebar({ isOpen, setSidebarOpen, onSearchClick }: Sideb
             </div>
           )}
 
-          {/* Profile Trigger Button */}
-          <div
-            ref={profileButtonRef}
-            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-            className={`px-4 py-2 flex items-center justify-between cursor-pointer rounded-full border select-none transition-all duration-150
-              ${isProfileMenuOpen 
-                ? 'bg-[var(--bg-hover)] border-[var(--border-popover)] shadow-sm' 
-                : 'bg-transparent border-transparent hover:bg-[var(--bg-hover)] hover:border-[var(--border-popover)]/45'}`}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/20 flex items-center justify-center text-xs font-semibold text-white shrink-0 overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"
-                  alt="Subhankar Patra"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-[var(--text-main)] truncate">Subhankar Patra</span>
-                <span className="text-[11px] text-zinc-500 font-mono -mt-0.5 truncate">subhankarpatra258@gmail.com</span>
-              </div>
+        </div>
+
+        {/* Profile Footer */}
+        <div className="p-3 bg-transparent flex items-center justify-between m-2 border border-transparent rounded-xl transition-all">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Glossy gradient avatar */}
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#E0245E] to-[#F56C13] flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm">
+              S
             </div>
-            <ChevronsUpDown
-              size={15}
-              className={`shrink-0 transition-transform duration-200
-                ${isProfileMenuOpen
-                  ? 'text-[var(--text-popover-item-hover)] rotate-180'
-                  : 'text-zinc-500'}`}
-            />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-semibold text-[var(--text-main)] truncate leading-none">Subhankar Patra</span>
+              <span className="text-[10px] text-zinc-500 font-medium tracking-wide mt-1 leading-none">Pro</span>
+            </div>
           </div>
+          <button 
+            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+            className="text-zinc-500 hover:text-[var(--text-main)] transition-colors p-1.5 rounded-full hover:bg-zinc-800/10 dark:hover:bg-zinc-100/10 cursor-pointer" 
+            title="Settings"
+          >
+            <Settings size={15} />
+          </button>
         </div>
       </div>
     </div>
